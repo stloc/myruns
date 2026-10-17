@@ -147,12 +147,13 @@ final class IntervalsSynchronizer
         $moving = (int) self::number($remote, 'moving_time');
         $elapsed = (int) self::number($remote, 'elapsed_time');
         $type = self::string($remote, 'type');
+        $name = self::string($remote, 'name');
 
         return new Activity(
             id: self::SOURCE.':'.$id,
             source: self::SOURCE,
-            name: self::string($remote, 'name'),
-            sport: self::SPORTS[$type] ?? Sport::fromLabel($type),
+            name: $name,
+            sport: (self::SPORTS[$type] ?? Sport::fromLabel($type))->refinedByName($name),
             startDate: (new \DateTimeImmutable($start))->setTimezone(new \DateTimeZone('UTC')),
             distanceMeters: self::number($remote, 'distance') ?? 0.0,
             movingTimeSeconds: $moving > 0 ? $moving : $elapsed,

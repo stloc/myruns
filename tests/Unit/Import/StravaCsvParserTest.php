@@ -38,12 +38,14 @@ final class StravaCsvParserTest extends TestCase
         $csv = <<<'CSV'
             ID de l'activité,Date de l'activité,Nom de l'activité,Type d'activité,Temps écoulé,Distance,Dénivelé positif
             987,"5 janv. 2026, 07:12:34",Sortie du dimanche,Course à pied,3600,"10,5",80
+            988,"6 janv. 2026, 12:00:00",Trail le midi,Course à pied,3600,"10,5",180
             CSV;
 
         $activities = iterator_to_array($this->parse($csv), false);
 
-        self::assertCount(1, $activities);
+        self::assertCount(2, $activities);
         self::assertSame(Sport::Run, $activities[0]->sport);
+        self::assertSame(Sport::TrailRun, $activities[1]->sport, 'Type précis perdu par le CSV, gardé dans le nom');
         self::assertSame('2026-01-05 07:12:34', $activities[0]->startDate->format('Y-m-d H:i:s'));
         self::assertSame(10500.0, $activities[0]->distanceMeters);
         self::assertSame(3600, $activities[0]->movingTimeSeconds);

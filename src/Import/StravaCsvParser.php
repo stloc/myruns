@@ -79,7 +79,7 @@ final class StravaCsvParser
                 id: $value('id'),
                 source: ActivityRepository::SOURCE_CSV,
                 name: $value('name'),
-                sport: Sport::fromLabel($value('type')),
+                sport: Sport::fromLabel($value('type'))->refinedByName($value('name')),
                 startDate: $date,
                 distanceMeters: $distance,
                 movingTimeSeconds: $moving > 0 ? $moving : $elapsed,

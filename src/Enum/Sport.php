@@ -34,6 +34,15 @@ enum Sport: string
         };
     }
 
+    /**
+     * Course déclarée « trail » par son nom : le CSV Strava ne donne que l'ancien type « Course à
+     * pied », mais garde le nom automatique tiré du type précis (« Trail le matin », « Lunch Trail Run »).
+     */
+    public function refinedByName(string $name): self
+    {
+        return self::Run === $this && 1 === preg_match('/trail/iu', $name) ? self::TrailRun : $this;
+    }
+
     public function isRunning(): bool
     {
         return \in_array($this, [self::Run, self::TrailRun, self::VirtualRun], true);

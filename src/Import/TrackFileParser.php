@@ -137,7 +137,7 @@ final class TrackFileParser
         $type = null !== $trk && isset($trk->type) ? (string) $trk->type : '';
         $name = null !== $trk && isset($trk->name) ? (string) $trk->name : '';
 
-        return new ParsedTrack($this->summarize($id, $name, Sport::fromLabel('' !== $type ? $type : $name), $points), $points);
+        return new ParsedTrack($this->summarize($id, $name, Sport::fromLabel('' !== $type ? $type : $name)->refinedByName($name), $points), $points);
     }
 
     private function parseTcx(\SimpleXMLElement $xml, string $id): ?ParsedTrack
@@ -178,8 +178,8 @@ final class TrackFileParser
             );
         }
 
-        $sport = Sport::fromLabel((string) $node['Sport']);
         $name = (string) ($xml->xpath('//t:Activity/t:Notes')[0] ?? '');
+        $sport = Sport::fromLabel((string) $node['Sport'])->refinedByName($name);
         $lapTime = array_sum(array_map(static fn (TrackLap $l): float => $l->seconds, $laps));
         $lapDistance = array_sum(array_map(static fn (TrackLap $l): float => $l->distanceMeters, $laps));
         $lapHr = array_sum(array_map(static fn (TrackLap $l): float => ($l->averageHeartRate ?? 0) * $l->seconds, $laps));
