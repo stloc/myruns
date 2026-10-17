@@ -7,6 +7,7 @@ namespace App\Controller;
 use App\Chart\ColumnChart;
 use App\Prediction\FitnessAnalyzer;
 use App\Repository\ActivityRepository;
+use App\Training\PlanReviewer;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -16,7 +17,7 @@ final class DashboardController extends AbstractController
     private const CHART_WEEKS = 26;
 
     #[Route('/', name: 'dashboard', methods: ['GET'])]
-    public function index(ActivityRepository $activities, FitnessAnalyzer $analyzer): Response
+    public function index(ActivityRepository $activities, FitnessAnalyzer $analyzer, PlanReviewer $reviewer): Response
     {
         $weekly = $activities->weeklyRunningKm(self::CHART_WEEKS);
 
@@ -26,6 +27,7 @@ final class DashboardController extends AbstractController
             'latest_activities' => $activities->findLatest(8),
             'weekly_km' => $weekly,
             'chart' => ColumnChart::fromSeries($weekly),
+            'last_session' => $reviewer->review()?->latestDone(),
         ]);
     }
 }

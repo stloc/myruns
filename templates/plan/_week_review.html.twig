@@ -1,0 +1,45 @@
+{% set weekdays = ['lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.', 'dim.'] %}
+{% if review.advice %}<p class="alert alert-warning">{{ review.advice }}</p>{% endif %}
+<div class="table-scroll">
+    <table class="data-table plan-review-table">
+        <thead>
+            <tr>
+                <th scope="col">Jour</th>
+                <th scope="col">Séance</th>
+                <th scope="col">Contenu</th>
+                <th scope="col" class="num">Prévu</th>
+                <th scope="col" class="num">Réalisé</th>
+                <th scope="col">Bilan</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for session_review in review.sessions %}
+                {% set session = session_review.session %}
+                {% set day = session_review.date %}
+                <tr>
+                    <td>{{ weekdays[day|date('N') - 1] }} {{ day|date('d/m') }}</td>
+                    <td>{{ session.type.label }}</td>
+                    <td>{{ session.description }}</td>
+                    <td class="num">{{ session.distanceKm|number_format(1, ',') }} km</td>
+                    <td class="num">
+                        {% for run in session_review.activities %}
+                            <a href="{{ path('activity_show', {id: run.id}) }}">{{ (run.distanceMeters / 1000)|number_format(1, ',') }} km</a>
+                            <span class="muted">{{ run.paceSecondsPerKm|pace }}</span>{% if not loop.last %}<br>{% endif %}
+                        {% else %}
+                            <span class="muted">–</span>
+                        {% endfor %}
+                    </td>
+                    <td class="plan-review-outcome">{{ include('plan/_session_outcome.html.twig', {review: session_review}, with_context = false) }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% if review.extras is not empty %}
+    <p class="card-subtitle plan-review-extras">
+        Hors programme :
+        {% for run in review.extras %}
+            <a href="{{ path('activity_show', {id: run.id}) }}">{{ weekdays[run.startDate|date('N') - 1] }} {{ run.startDate|date('d/m') }} · {{ (run.distanceMeters / 1000)|number_format(1, ',') }} km</a>{% if not loop.last %}, {% endif %}
+        {% endfor %}
+    </p>
+{% endif %}

@@ -135,6 +135,27 @@ final class ActivityRepository extends ServiceEntityRepository
     }
 
     /**
+     * @return list<Activity> courses à pied de $from (inclus) à $to (exclu), de la plus ancienne à la
+     *                        plus récente, sans les enregistrements de moins de 500 m
+     */
+    public function findRunsBetween(\DateTimeImmutable $from, \DateTimeImmutable $to): array
+    {
+        /* @var list<Activity> */
+        return $this->createQueryBuilder('a')
+            ->andWhere('a.sport IN (:sports)')
+            ->andWhere('a.startDate >= :from')
+            ->andWhere('a.startDate < :to')
+            ->andWhere('a.distanceMeters >= :minDistance')
+            ->setParameter('sports', self::RUNNING_SPORTS)
+            ->setParameter('minDistance', self::MIN_RUN_METERS)
+            ->setParameter('from', $from, UtcDateTimeImmutableType::NAME)
+            ->setParameter('to', $to, UtcDateTimeImmutableType::NAME)
+            ->orderBy('a.startDate', \SortDirection::Ascending)
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
      * Date de la plus ancienne course à pied connue (début de l'historique de course).
      */
     public function firstRunDate(): ?\DateTimeImmutable

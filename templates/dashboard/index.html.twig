@@ -45,6 +45,16 @@
             </div>
         </section>
 
+        {% if last_session %}
+            <section class="card">
+                <div class="card-heading">
+                    <h2>Dernière séance du programme</h2>
+                    <a href="{{ path('plan') }}">Voir le programme</a>
+                </div>
+                {{ include('plan/_session_card.html.twig', {review: last_session}, with_context = false) }}
+            </section>
+        {% endif %}
+
         <div class="grid-2">
             <section class="card">
                 <h2>Volume de course par semaine</h2>

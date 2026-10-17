@@ -245,8 +245,18 @@ le profil, les courses officielles et les ajustements du programme, non : sauveg
   2 jours après le jour du club : le club est remplacé par un footing, comportement normal.
 - **« Jeton de sécurité invalide »** en ajustant une semaine → page restée ouverte très longtemps
   → recharger la page et recommencer.
-- **Le programme a changé d'une visite à l'autre** → comportement normal : il est recalculé avec
-  la forme du moment (nouvel import, synchro) et le nombre de séances choisi.
+- **Le programme a changé d'une visite à l'autre** → comportement normal : les semaines à venir
+  sont recalculées avec la forme du moment (nouvel import, synchro) et le nombre de séances
+  choisi ; l'encadré « Bilan et conseils » liste ce qui a changé. La semaine en cours, elle, reste
+  celle prévue le lundi.
+- **Une séance faite apparaît « Manquée » ou « Hors programme »** → la sortie n'a pas été faite
+  le jour prévu ni la veille ou le lendemain, ou elle n'est pas encore importée (synchro
+  intervals.icu, import) → importer, puis recharger. Une sortie faite la veille d'une séance
+  encore à venir reste « Hors programme » tant que le jour de la séance n'est pas passé.
+- **« Faite en footing » alors que la séance a été faite** → aucun tour de la montre n'est à
+  l'allure marathon ou plus vite : sans touche Lap, seuls les kilomètres sont connus, et une
+  fraction courte mêlée à la récupération dans un même kilomètre n'atteint pas cette allure →
+  marquer les fractions avec la touche Lap.
 - **« Ancienneté déduite de l'historique : course depuis … au moins »** dans les facteurs → le
   champ « Je cours régulièrement depuis » est vide : l'année de la première course importée est
   utilisée (si l'historique couvre au moins 2 ans). Si vous couriez avant, saisir l'année réelle
@@ -391,6 +401,26 @@ flèches pour naviguer, Entrée pour valider, Échap pour revenir, Ctrl+C pour q
   « Sorties cette semaine » / « Je vais au club » pour ajuster cette semaine seulement. Les
   étiquettes « club », « allégée », « ajustée » et « cette semaine » résument la semaine ; la
   semaine en cours est dépliée.
+  Au-dessus, l'encadré **Bilan et conseils** donne la probabilité de réussir l'objectif (et son
+  évolution depuis lundi), ce que les sorties de la semaine ont changé au programme et le bilan
+  de la dernière séance. La semaine en cours et la **Semaine passée** comparent chaque séance
+  prévue à la sortie faite (colonnes « Prévu », « Réalisé », « Bilan ») ; les sorties qui ne
+  correspondent à aucune séance sont listées « Hors programme ».
+  Statuts d'une séance :
+
+  | Statut | Signification |
+  |---|---|
+  | À venir | Jour pas encore passé, ou aujourd'hui sans sortie |
+  | Manquée | Jour passé sans sortie |
+  | Incomplète | Moins de 80 % de la distance prévue |
+  | Réussie | Distance prévue (de 80 à 120 %) à la bonne intensité |
+  | Largement réussie | Plus de 120 % de la distance à la bonne intensité : c'est positif |
+  | Trop intense | Footing ou sortie longue courus trop vite (FC au-dessus de 80 % de la réserve cardiaque si la FC max est dans le profil, sinon allure) |
+  | Faite en footing | Séance de seuil, VMA ou allure objectif sans aucun tour à l'allure marathon ou plus vite |
+  | Course faite | Jour de l'objectif : distance et allure réalisées |
+- **Tableau de bord** et **fiche d'une activité** : la carte « Dernière séance du programme » /
+  « Séance du programme » reprend la séance prévue, ce qui a été fait et le conseil (semaine en
+  cours et semaine passée seulement).
 - **Import** : envoi d'un fichier ou import du dossier configuré ; un message résume le résultat.
 - **Réglages** : clé intervals.icu (synchro des séances) et clé Anthropic (analyse IA,
   facultative). Une clé enregistrée s'affiche masquée (« …abcd ») ; un champ laissé vide garde la
@@ -474,3 +504,6 @@ En ligne de commande : `ddev exec bin/console app:predict marathon 3h30 2027-04-
 5. Une semaine sans club, ou avec une sortie de plus ou de moins : ouvrir la semaine, décocher
    « Je vais au club » et/ou changer « Sorties cette semaine », puis **Ajuster la semaine**. Le
    bouton « Revenir au réglage général » annule l'ajustement.
+6. Après chaque sortie (import ou synchro), l'encadré **Bilan et conseils** et la colonne
+   « Bilan » indiquent si la séance est réussie, avec un conseil. Une séance plus longue que
+   prévu en restant facile est « Largement réussie » : les semaines suivantes en tiennent compte.

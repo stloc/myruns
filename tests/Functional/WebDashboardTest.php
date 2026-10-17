@@ -250,6 +250,18 @@ final class WebDashboardTest extends WebTestCase
         self::assertSelectorTextContains('main', 'Jour J');
         self::assertSelectorTextContains('main', '4:30/km');
 
+        // Bilan prévu / réalisé : la semaine passée a forcément des séances faites (3 sorties par semaine).
+        self::assertSelectorTextContains('.plan-review h2', 'Bilan et conseils');
+        self::assertSelectorTextContains('.plan-review', 'Probabilité de réussir l\'objectif');
+        self::assertSelectorExists('#semaine-passee .plan-review-table .badge-success');
+        $activityPage = $crawler->filter('#semaine-passee .plan-review-table a')->first()->link();
+        $this->client->click($activityPage);
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('main', 'Séance du programme');
+        $this->client->request('GET', '/');
+        self::assertSelectorTextContains('main', 'Dernière séance du programme');
+        $crawler = $this->client->request('GET', '/programme');
+
         $this->client->submit($crawler->selectButton('Enregistrer')->form([
             'plan_settings[planSessionsPerWeek]' => '4',
             'plan_settings[clubWeekday]' => '3',

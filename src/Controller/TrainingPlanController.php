@@ -9,9 +9,8 @@ use App\Form\PlanSettingsType;
 use App\Prediction\FitnessAnalyzer;
 use App\Repository\AthleteProfileRepository;
 use App\Repository\TrainingWeekOverrideRepository;
-use App\Training\PlanOptions;
+use App\Training\PlanReviewer;
 use App\Training\TrainingPlanBuilder;
-use App\Training\WeekAdjustment;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -24,6 +23,7 @@ final class TrainingPlanController extends AbstractController
         private readonly TrainingWeekOverrideRepository $overrides,
         private readonly FitnessAnalyzer $analyzer,
         private readonly TrainingPlanBuilder $builder,
+        private readonly PlanReviewer $reviewer,
     ) {
     }
 
@@ -41,20 +41,12 @@ final class TrainingPlanController extends AbstractController
             return $this->redirectToRoute('plan');
         }
 
-        $goal = $profile->lastGoal();
-        $plan = null;
-        if (null !== $goal) {
-            $today = new \DateTimeImmutable('today');
-            $adjustments = array_map(
-                static fn (TrainingWeekOverride $override): WeekAdjustment => new WeekAdjustment($override->club, $override->sessions),
-                $this->overrides->findSinceIndexedByWeek($today->modify('monday this week')),
-            );
-            $plan = $this->builder->build($goal, $fitness, new PlanOptions($profile->planSessionsPerWeek, $profile->clubWeekday, $profile->clubTime, $adjustments));
-        }
+        $review = null === $profile->lastGoal() ? null : $this->reviewer->review();
 
         return $this->render('plan/index.html.twig', [
-            'goal' => $goal,
-            'plan' => $plan,
+            'goal' => $profile->lastGoal(),
+            'plan' => $review?->plan,
+            'review' => $review,
             'settings_form' => $form,
             'session_choices' => range(TrainingPlanBuilder::MIN_SESSIONS, TrainingPlanBuilder::MAX_SESSIONS),
             'today' => new \DateTimeImmutable('today'),

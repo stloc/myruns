@@ -1,0 +1,7 @@
+{% set session = review.session %}
+<p>
+    <strong>{{ session.type.label }}</strong> du {{ review.date|date('d/m') }} : {{ session.distanceKm|number_format(1, ',') }} km prévus,
+    {{ review.doneKm|number_format(1, ',') }} km réalisés à {{ review.pace|pace }}.
+</p>
+<p class="muted">{{ session.description }}</p>
+<p class="plan-review-outcome">{{ include('plan/_session_outcome.html.twig', {review: review}, with_context = false) }}</p>

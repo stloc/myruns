@@ -298,6 +298,13 @@ code { font-size: 0.9em; overflow-wrap: anywhere; }
 .form select { width: 100%; max-width: 22rem; padding: 0.5rem 0.6rem; border: 1px solid var(--chart-baseline); border-radius: 6px; background: var(--page-bg); color: var(--text); font: inherit; }
 .form input[type="time"] { padding: 0.45rem 0.6rem; border: 1px solid var(--chart-baseline); border-radius: 6px; background: var(--page-bg); color: var(--text); font: inherit; }
 .plan-week-form { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1rem; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border); font-size: 0.9rem; }
+.badge-success { background: var(--success-bg); color: var(--success-text); }
+.badge-warning { background: var(--warning-bg); color: var(--warning-text); }
+.badge-error { background: var(--error-bg); color: var(--error-text); }
+.plan-review h3 { margin: 1rem 0 0.35rem; font-size: 1rem; }
+.plan-review-table .plan-review-outcome { min-width: 16rem; }
+.session-advice { display: block; margin-top: 0.25rem; color: var(--text-secondary); font-size: 0.85rem; }
+.plan-review-extras { margin: 0.75rem 0 0; }
 .plan-week-form select { margin-left: 0.35rem; padding: 0.3rem 0.4rem; border: 1px solid var(--chart-baseline); border-radius: 6px; background: var(--page-bg); color: var(--text); font: inherit; }
 
 /* Carte de la trace */

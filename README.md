@@ -229,6 +229,24 @@ dernier objectif enregistré et de la forme du moment :
 7. **Jours** : sortie longue le dimanche (samedi si le club est le dimanche), club à son jour,
    puis chaque séance de qualité et chaque footing le plus loin possible des séances déjà placées.
 
+## Bilan prévu / réalisé
+
+Déterministe (`src/Training/PlanReviewer.php`, `SessionEvaluator`, `WeekReviewer`), rien n'est
+stocké :
+
+1. **Prévu figé au lundi** : la semaine en cours (et la précédente) est le programme construit
+   avec la forme du lundi ; les semaines suivantes sont recalculées avec la forme du jour. Les
+   écarts sur la semaine prochaine (volume, sortie longue, indice) sont listés dans « Bilan et
+   conseils », avec la probabilité de l'objectif comparée à celle du lundi.
+2. **Rattachement** : sorties du jour de la séance, sinon d'un jour voisin (±1) une fois le jour de
+   la séance passé ; le reste est « hors programme ».
+3. **Statut** : manquée (jour passé sans sortie), incomplète (< 80 % de la distance), réussie,
+   largement réussie (> 120 % à la bonne intensité : positif). Endurance trop intense si la FC
+   dépasse 80 % de la réserve cardiaque (Karvonen, si FC max connue), sinon si l'allure est plus
+   rapide que le footing le plus rapide − 15 s/km (allure ignorée en trail). Seuil, VMA et allure
+   objectif « faites en footing » sans aucun tour (à défaut km) à l'allure marathon + 5 s/km.
+4. **Semaine** : au-delà de 130 % du volume prévu, conseil de garder la semaine suivante calme.
+
 ## Organisation du code
 
 | Répertoire | Rôle |
@@ -238,7 +256,7 @@ dernier objectif enregistré et de la forme du moment :
 | `src/Settings/` | Réglages saisis dans l'app (`settings.json`) exposés comme variables d'environnement |
 | `src/Import/` | Parseurs CSV Strava, GPX, TCX et import idempotent |
 | `src/Prediction/` | VDOT, forme, prédiction d'objectif |
-| `src/Training/` | Programme d'entraînement (phases, volumes, allures, séances) |
+| `src/Training/` | Programme d'entraînement (phases, volumes, allures, séances) et bilan prévu / réalisé |
 | `src/Ai/` | Coach IA (sortie structurée `CoachAnalysis`) |
 | `src/Controller/`, `src/Form/`, `templates/`, `assets/` | Dashboard web |
 | `src/Chart/ColumnChart.php` | Géométrie de l'histogramme SVG (rendu sans JS) |

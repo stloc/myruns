@@ -45,6 +45,16 @@
         </div>
     </section>
 
+    {% if session_review %}
+        <section class="card">
+            <div class="card-heading">
+                <h2>Séance du programme</h2>
+                <a href="{{ path('plan') }}">Voir le programme</a>
+            </div>
+            {{ include('plan/_session_card.html.twig', {review: session_review}, with_context = false) }}
+        </section>
+    {% endif %}
+
     {% if route_map %}
         <section class="card" aria-labelledby="route-map-title">
             <h2 id="route-map-title">Parcours</h2>

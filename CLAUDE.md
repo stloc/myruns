@@ -67,6 +67,12 @@ tournent aussi sur l'hôte. `ddev start` ne demande `sudo` qu'au tout premier d�
   construit depuis `AthleteProfile::lastGoal()` (dernier objectif calculé sur `/objectif`), réglages
   sur le profil (`planSessionsPerWeek`, `clubWeekday`, `clubTime`) et ajustements par semaine
   (`TrainingWeekOverride`, ligne supprimée quand elle revient au réglage général).
+- Bilan prévu / réalisé (`src/Training/PlanReviewer`, règles dans `SessionEvaluator`, figées par
+  `tests/Unit/Training/SessionEvaluatorTest.php` et `tests/Integration/PlanReviewTest.php`) : rien
+  n'est stocké, le prévu d'une semaine = `CurrentPlan::planAt(lundi)` (forme du lundi), les
+  semaines suivantes = forme du jour. Plus long que prévu à la bonne intensité est **positif**
+  (« Largement réussie ») ; seule l'intensité donne un avertissement. Pas d'écart de probabilité
+  par séance (le modèle de tendance le rend trompeur) : seulement l'écart depuis lundi.
 - Base **SQLite** : chemin `%app.data_dir%/myruns.db` (`MYRUNS_DATA_DIR`, défaut `var/`).
   SQLite compare les dates comme du texte et oublie le fuseau : `Activity::$startDate` utilise le
   type `utc_datetime_immutable` (`src/Doctrine/`), les paramètres DQL de date se lient avec leur

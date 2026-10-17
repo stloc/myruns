@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Prediction;
 
 use App\Entity\Activity;
-use App\Entity\AthleteProfile;
 use App\Enum\Sport;
 use App\Repository\ActivityRepository;
 use App\Repository\AthleteProfileRepository;
@@ -39,12 +38,6 @@ final class FitnessAnalyzer
     /** Part de l'écart cardio/performances retenue : l'estimation cardiaque est bruitée. */
     private const HEART_RATE_TRUST = 0.7;
     private const HEART_RATE_MAX_GAIN = 8.0;
-    /**
-     * FC de repos supposée quand elle n'est pas renseignée. La formule « % FC max → % VO2max »
-     * (Swain) surestime fortement la forme aux allures modérées : Karvonen avec une FC de repos
-     * moyenne reste bien plus proche des chronos réels.
-     */
-    private const DEFAULT_RESTING_HEART_RATE = 60;
 
     public function __construct(
         private readonly ActivityRepository $activities,
@@ -76,10 +69,11 @@ final class FitnessAnalyzer
 
         // 2. Intensité cardiaque.
         $heartRateEstimates = [];
-        if ($profile->hasHeartRateZones()) {
+        $reserve = HeartRateReserve::of($profile);
+        if (null !== $reserve) {
             $hrSince = $now->modify(\sprintf('-%d weeks', self::HEART_RATE_WINDOW_WEEKS));
             foreach ($runs as $run) {
-                $estimate = $run->startDate >= $hrSince ? $this->heartRateVdotOf($run, $profile) : null;
+                $estimate = $run->startDate >= $hrSince ? $this->heartRateVdotOf($run, $reserve) : null;
                 if (null !== $estimate) {
                     $heartRateEstimates[] = $estimate;
                 }
@@ -181,18 +175,16 @@ final class FitnessAnalyzer
      * VO2max estimée à partir de la FC moyenne : la fraction de réserve cardiaque utilisée
      * (Karvonen) correspond à la fraction de réserve de VO2 (Swain).
      */
-    private function heartRateVdotOf(Activity $run, AthleteProfile $profile): ?float
+    private function heartRateVdotOf(Activity $run, HeartRateReserve $reserve): ?float
     {
         $heartRate = $run->averageHeartRate;
-        $max = $profile->maxHeartRate;
-        if (null === $heartRate || null === $max || Sport::TrailRun === $run->sport
+        if (null === $heartRate || Sport::TrailRun === $run->sport
             || $run->movingTimeSeconds < self::MIN_HEART_RATE_DURATION_S || $run->distanceMeters < self::MIN_DISTANCE_M) {
             return null;
         }
 
         $vo2 = Vdot::oxygenCost($this->equivalentDistance($run) / ($run->movingTimeSeconds / 60));
-        $rest = $profile->restingHeartRate ?? self::DEFAULT_RESTING_HEART_RATE;
-        $fraction = ($heartRate - $rest) / ($max - $rest);
+        $fraction = $reserve->fraction($heartRate);
         $estimate = 3.5 + ($vo2 - 3.5) / max($fraction, 0.01);
 
         // En dehors de 55-95 %, la relation FC/VO2 n'est plus fiable (FC trop basse ou effort maximal).

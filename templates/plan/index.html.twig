@@ -23,6 +23,46 @@
     {% else %}
         <p class="intro">Objectif : <strong>{{ goal.describe }}</strong> · <a href="{{ path('goal') }}">modifier</a></p>
 
+        <section class="card plan-review">
+            <h2>Bilan et conseils</h2>
+            {% if review.probabilityPercent is not null %}
+                {% set change = review.probabilityChange %}
+                <p>
+                    Probabilité de réussir l'objectif : <strong>{{ review.probabilityPercent }} %</strong>
+                    {%- if change %} ({{ change > 0 ? '+' }}{{ change }} pt{{ change|abs > 1 ? 's' }} depuis lundi){% endif %}.
+                </p>
+            {% endif %}
+            {% if review.changes is not empty %}
+                <p class="card-subtitle">Vos sorties depuis lundi ont fait évoluer le programme :</p>
+                <ul class="factors">
+                    {% for change in review.changes %}
+                        <li>{{ change }}</li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="muted">Programme inchangé depuis lundi.</p>
+            {% endif %}
+            {% set last = review.latestDone %}
+            {% if last %}
+                <h3>Dernière séance : {{ last.session.type.label|lower }} du {{ last.date|date('d/m') }}</h3>
+                <p class="plan-review-outcome">{{ include('plan/_session_outcome.html.twig', {review: last}, with_context = false) }}</p>
+            {% endif %}
+            <p class="card-subtitle">La semaine en cours reste celle prévue lundi ; les semaines suivantes suivent votre forme du jour.</p>
+        </section>
+
+        {% if review.previousWeek %}
+            {% set previous = review.previousWeek %}
+            <section class="card" id="semaine-passee">
+                <h2>Semaine passée</h2>
+                <p class="card-subtitle">
+                    {{ previous.week.monday|date('d/m') }} → {{ previous.week.sunday|date('d/m') }} ·
+                    {{ previous.succeededCount }} séance(s) réussie(s) sur {{ previous.sessions|length }} ·
+                    {{ previous.doneKm|number_format(1, ',') }} km sur {{ previous.week.volumeKm|number_format(1, ',') }} prévus
+                </p>
+                {{ include('plan/_week_review.html.twig', {review: previous}, with_context = false) }}
+            </section>
+        {% endif %}
+
         <section class="card">
             <h2>Réglages</h2>
             {{ form_start(settings_form, {attr: {class: 'form plan-settings'}}) }}
@@ -101,6 +141,10 @@
                     <span class="plan-week-volume">{{ week.volumeKm|number_format(1, ',') }} km</span>
                 </summary>
                 <p class="card-subtitle">{{ week.phase.purpose }}</p>
+                {% if loop.first %}
+                    <p class="card-subtitle">Réalisé : {{ review.currentWeek.doneKm|number_format(1, ',') }} km sur {{ week.volumeKm|number_format(1, ',') }} prévus.</p>
+                    {{ include('plan/_week_review.html.twig', {review: review.currentWeek}, with_context = false) }}
+                {% else %}
                 <div class="table-scroll">
                     <table class="data-table">
                         <thead>
@@ -124,6 +168,7 @@
                         </tbody>
                     </table>
                 </div>
+                {% endif %}
                 <form method="post" action="{{ path('plan_week', {week: week_id}) }}" class="plan-week-form">
                     <input type="hidden" name="_token" value="{{ csrf_token('plan_week_' ~ week_id) }}">
                     <label>Sorties cette semaine

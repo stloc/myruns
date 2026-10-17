@@ -12,6 +12,7 @@ use App\Enum\SplitKind;
 use App\Enum\Sport;
 use App\Repository\ActivityRepository;
 use App\Repository\ActivitySearch;
+use App\Training\PlanReviewer;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -44,7 +45,7 @@ final class ActivityController extends AbstractController
     }
 
     #[Route('/activites/{id}', name: 'activity_show', methods: ['GET'])]
-    public function show(Activity $activity): Response
+    public function show(Activity $activity, PlanReviewer $reviewer): Response
     {
         $laps = $activity->splitsOf(SplitKind::Lap);
 
@@ -55,6 +56,8 @@ final class ActivityController extends AbstractController
             // Tours affichés seulement s'ils apportent autre chose que le découpage au km.
             'laps' => [] !== $laps && !SplitTable::areAutomaticKilometers($laps) ? SplitTable::fromSplits($laps) : null,
             'automatic_laps' => [] !== $laps && SplitTable::areAutomaticKilometers($laps),
+            // Séance du programme (semaine en cours ou précédente) à laquelle la sortie est rattachée.
+            'session_review' => $activity->sport->isRunning() ? $reviewer->review()?->sessionFor($activity) : null,
         ]);
     }
 }
