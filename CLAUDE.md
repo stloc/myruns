@@ -56,6 +56,11 @@ tournent aussi sur l'hôte. `ddev start` ne demande `sudo` qu'au tout premier d�
   étrangères), posée par `replaceTrackData()`. Allure par tronçon calculée en PHP
   (`src/Chart/RouteMap.php`), dessin Leaflet chargé à la demande (`assets/route_map.js`), tuiles
   OSM = seul appel réseau du navigateur (autorisé dans la CSP Tauri `img-src`).
+- Carte des départs (`/activites`) : `ActivityRoute::$startLatitude/$startLongitude` (posées par le
+  constructeur ; migration `Version20261017180000` les calcule en PHP pour l'existant) ;
+  `ActivityRepository::startPositions()` reprend les critères de la recherche, toutes pages
+  confondues ; `src/Chart/StartMap.php` → `assets/activities_map.js` : regroupement maison par
+  distance (60 px, fusion des groupes trop proches, pas de plugin Leaflet), liste au zoom 17.
 - Trail : type déclaré par la source ou nom contenant « trail » (`Sport::refinedByName()`), jamais
   le sous-sport FIT (mode montre utilisé aussi sur route).
 - Estimation cardiaque : Karvonen (FC repos par défaut 60) ; ignorée si une course < 12 semaines.

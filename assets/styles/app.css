@@ -325,6 +325,23 @@ code { font-size: 0.9em; overflow-wrap: anywhere; }
 .route-start, .route-finish { stroke: var(--route-marker-border); stroke-width: 2; fill-opacity: 1; }
 .route-start { fill: var(--route-start); }
 .route-finish { fill: var(--route-finish); }
+/* Carte des départs (page Activités) */
+.start-point { fill: var(--accent); stroke: var(--route-marker-border); stroke-width: 2; fill-opacity: 0.9; cursor: pointer; }
+/* .route-map : plus spécifique que .leaflet-marker-icon (display: block), chargé après. */
+.route-map .start-cluster {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    border: 3px solid var(--accent-soft);
+    background: var(--accent);
+    color: var(--accent-text);
+    font-weight: 700;
+    font-size: 0.85rem;
+    font-variant-numeric: tabular-nums;
+}
+.start-list ul { max-height: 14rem; overflow-y: auto; margin: 0.4rem 0 0; padding-left: 1rem; }
+.start-list li { margin: 0.2rem 0; }
 /* Bulles Leaflet (blanches par défaut) aux couleurs du thème, lisibles en mode sombre. */
 .route-map .leaflet-popup-content-wrapper,
 .route-map .leaflet-popup-tip,

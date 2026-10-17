@@ -84,6 +84,42 @@ final class ActivityRepository extends ServiceEntityRepository
         return is_numeric($count) ? (int) $count : 0;
     }
 
+    /**
+     * Départ des activités correspondant aux critères, toutes pages confondues, pour la carte de
+     * la liste : seules les sorties avec une trace GPS, de la plus récente à la plus ancienne.
+     *
+     * @return list<array{id: string, name: string, sport: Sport, startDate: \DateTimeImmutable, distanceMeters: float, latitude: float, longitude: float}>
+     */
+    public function startPositions(ActivitySearch $search): array
+    {
+        $rows = $this->searchQuery($search)
+            ->select('a.id, a.name, a.sport, a.startDate, a.distanceMeters, r.startLatitude AS latitude, r.startLongitude AS longitude')
+            ->join('a.route', 'r')
+            ->andWhere('r.startLatitude IS NOT NULL AND r.startLongitude IS NOT NULL')
+            ->orderBy('a.startDate', \SortDirection::Descending)
+            ->getQuery()
+            ->getArrayResult();
+
+        $positions = [];
+        foreach ($rows as $row) {
+            if (\is_array($row) && \is_string($row['id'] ?? null) && \is_string($row['name'] ?? null) && ($row['sport'] ?? null) instanceof Sport
+                && ($row['startDate'] ?? null) instanceof \DateTimeImmutable && is_numeric($row['distanceMeters'] ?? null)
+                && is_numeric($row['latitude'] ?? null) && is_numeric($row['longitude'] ?? null)) {
+                $positions[] = [
+                    'id' => $row['id'],
+                    'name' => $row['name'],
+                    'sport' => $row['sport'],
+                    'startDate' => $row['startDate'],
+                    'distanceMeters' => (float) $row['distanceMeters'],
+                    'latitude' => (float) $row['latitude'],
+                    'longitude' => (float) $row['longitude'],
+                ];
+            }
+        }
+
+        return $positions;
+    }
+
     private function searchQuery(ActivitySearch $search): QueryBuilder
     {
         $qb = $this->createQueryBuilder('a');

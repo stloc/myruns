@@ -88,7 +88,9 @@ flowchart LR
 - Flux entrant : aucun depuis le réseau. L'application Windows écoute uniquement sur `127.0.0.1`
   (le poste lui-même) ; en développement, HTTPS local `mystrava.ddev.site` (routeur DDEV).
 - Flux sortants : HTTPS vers intervals.icu (synchro des séances), vers l'IGN `data.geopf.fr`
-  (altitude du terrain, à l'import d'une trace GPS) et vers l'API Anthropic (seulement quand on
+  (altitude du terrain et ville du départ, à l'import d'une trace GPS), vers `api.open-meteo.com` et
+  `nominatim.openstreetmap.org` (mêmes informations pour les sorties hors de France), vers `tile.openstreetmap.org` (fond de la
+  carte, chargé par le navigateur sur la liste et le détail des activités) et vers l'API Anthropic (seulement quand on
   lance l'analyse IA).
 
 # Développement
@@ -147,6 +149,8 @@ le profil, les courses officielles et les ajustements du programme, non : sauveg
     Quota par minute : au-delà, les traces restantes sont complétées au prochain import.
   - Nominatim / OpenStreetMap (public, gratuit, sans clé) : ville du départ hors de France ; au plus
     un appel par seconde (charte d'utilisation). Réponses gardées dans le dossier `place-cache`.
+  - Tuiles OpenStreetMap (public, gratuit, sans clé) : fond de la carte des départs (liste des
+    activités) et de la carte du parcours (détail), demandé par le navigateur à l'affichage. Sans internet, la trace s'affiche sans fond.
   - L'API Strava n'est **pas** utilisée (payante depuis juin 2026, usage IA interdit).
 
 ## Flux
@@ -173,7 +177,7 @@ le profil, les courses officielles et les ajustements du programme, non : sauveg
 | Menu | Lien | Contenu |
 |---|---|---|
 | Tableau de bord | [https://mystrava.ddev.site/](https://mystrava.ddev.site/) | Forme, volume par semaine, potentiel 5 km → marathon, dernières sorties |
-| Activités | [https://mystrava.ddev.site/activites](https://mystrava.ddev.site/activites) | Recherche (nom, type, période, distance, D+) et tri ; clic sur un nom → détail |
+| Activités | [https://mystrava.ddev.site/activites](https://mystrava.ddev.site/activites) | Recherche (nom, type, période, distance, D+) et tri, carte des départs ; clic sur un nom ou un point → détail |
 | Détail d'une activité | `https://mystrava.ddev.site/activites/<identifiant Strava>` | Temps de passage au km, tours de la montre, km rapides |
 | Objectif | [https://mystrava.ddev.site/objectif](https://mystrava.ddev.site/objectif) | Pourcentage de réussite d'un objectif, analyse IA |
 | Programme | [https://mystrava.ddev.site/programme](https://mystrava.ddev.site/programme) | Programme d'entraînement semaine par semaine jusqu'à l'objectif |
@@ -269,6 +273,11 @@ le profil, les courses officielles et les ajustements du programme, non : sauveg
 - **Pas de carte « Parcours » sur le détail d'une activité** → l'activité a été importée avant
   l'ajout de la carte, n'a pas de positions GPS (tapis, home-trainer, CSV seul) ou est une séance de
   natation → réimporter l'archive Strava complète ou lancer une synchro ; sans GPS, pas de carte (normal).
+- **Pas de « Carte des départs » sur la page Activités** → aucune sortie de la recherche n'a de
+  trace GPS (import du seul CSV, tapis, natation) ou les critères sont trop restrictifs → élargir la
+  recherche, ou réimporter l'archive Strava complète (avec le dossier `activities/`).
+- **Un rond de la carte des départs ne se sépare plus et ouvre une liste** → comportement normal :
+  ces sorties partent du même endroit (à quelques dizaines de mètres près).
 - **Carte grise, seule la trace colorée apparaît** → fond OpenStreetMap injoignable (pas
   d'internet, proxy ou pare-feu bloquant `tile.openstreetmap.org`) → vérifier la connexion puis
   recharger la page.

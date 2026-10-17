@@ -7,12 +7,14 @@ namespace App\Tests\Functional;
 use App\Repository\TrainingWeekOverrideRepository;
 use App\Tests\Fit\FitFileBuilder;
 use App\Tests\StravaExportFactory;
+use Doctrine\Bundle\DoctrineBundle\DataCollector\DoctrineDataCollector;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Field\ChoiceFormField;
 use Symfony\Component\DomCrawler\Field\FileFormField;
 use Symfony\Component\DomCrawler\Form;
 use Symfony\Component\Filesystem\Filesystem;
+use Symfony\Component\HttpKernel\Profiler\Profile;
 
 final class WebDashboardTest extends WebTestCase
 {
@@ -53,10 +55,18 @@ final class WebDashboardTest extends WebTestCase
         self::assertSelectorCount(26, '.chart-column');
         self::assertSelectorTextContains('body', 'Marathon');
 
+        $this->client->enableProfiler();
         $this->client->request('GET', '/activites?sport=run');
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('h1', '(36)');
         self::assertSelectorTextContains('table', 'Séance seuil');
+        // Comptage, page, temps de passage, départs pour la carte : pas une requête par activité.
+        $profile = $this->client->getProfile();
+        self::assertInstanceOf(Profile::class, $profile);
+        $db = $profile->getCollector('db');
+        self::assertInstanceOf(DoctrineDataCollector::class, $db);
+        self::assertSame(4, $db->getQueryCount());
+        self::assertSelectorNotExists('[data-activities-map]', 'Pas de carte des départs sans trace GPS (CSV seul)');
     }
 
     public function testActivitySearch(): void
@@ -168,6 +178,40 @@ final class WebDashboardTest extends WebTestCase
         self::assertGreaterThan('pace-1', $route['segments'][8]['class']);
         self::assertStringEndsWith('/km', $route['segments'][8]['label']);
         self::assertSelectorTextContains('.route-legend li:first-child', '/km');
+    }
+
+    public function testActivitiesPageMapsTheStartOfEveryMatchingActivity(): void
+    {
+        // 3 traces GPX dans l'archive : départs à 48° N (Finistère), sorties des 2, 3 et 4 janvier 2020.
+        $this->uploadExport(tracks: 3);
+        while ($this->client->getResponse()->isRedirect() && str_starts_with((string) $this->client->getResponse()->headers->get('Location'), '/import/')) {
+            $crawler = $this->client->followRedirect();
+            $this->client->submit($crawler->selectButton('Continuer')->form());
+        }
+
+        $crawler = $this->client->request('GET', '/activites');
+        self::assertSelectorTextContains('#start-map-title', 'Carte des départs');
+        self::assertSelectorTextContains('.card-subtitle', '3 sortie(s) avec trace GPS, toutes pages confondues');
+        /** @var array{points: list<array{0: float, 1: float, 2: string, 3: string}>, bounds: list<list<float>>} $map */
+        $map = json_decode((string) $crawler->filter('[data-activities-map]')->attr('data-activities-map'), true, flags: \JSON_THROW_ON_ERROR);
+        self::assertCount(3, $map['points']);
+        // Du plus récent au plus ancien, avec un lien vers le détail.
+        // JSON : 48.0 redevient l'entier 48, d'où assertEquals.
+        self::assertEquals([48.0, -4.0], [$map['points'][0][0], $map['points'][0][1]]);
+        self::assertStringStartsWith('Trace 3 · 04/01/2020 · ', $map['points'][0][2]);
+        self::assertStringStartsWith('/activites/', $map['points'][0][3]);
+        self::assertEquals([[48.0, -4.0], [48.0, -4.0]], $map['bounds']);
+
+        // La carte suit la recherche (toutes pages confondues).
+        $crawler = $this->client->request('GET', '/activites?q=trace+2');
+        $map = json_decode((string) $crawler->filter('[data-activities-map]')->attr('data-activities-map'), true, flags: \JSON_THROW_ON_ERROR);
+        self::assertIsArray($map);
+        self::assertIsArray($map['points']);
+        self::assertCount(1, $map['points']);
+        self::assertSelectorTextContains('.card-subtitle', 'correspondant à la recherche');
+
+        $this->client->request('GET', '/activites?q=marathon');
+        self::assertSelectorNotExists('[data-activities-map]', 'Aucun départ connu parmi les résultats');
     }
 
     public function testFolderImportIsHiddenWithoutConfiguredFolder(): void

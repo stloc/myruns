@@ -6,6 +6,7 @@ namespace App\Controller;
 
 use App\Chart\RouteMap;
 use App\Chart\SplitTable;
+use App\Chart\StartMap;
 use App\Entity\Activity;
 use App\Enum\ActivitySort;
 use App\Enum\SplitKind;
@@ -43,6 +44,10 @@ final class ActivityController extends AbstractController
             'page' => $page,
             'page_count' => max(1, (int) ceil($total / self::PER_PAGE)),
             'total' => $total,
+            'start_map' => StartMap::fromPositions(
+                $activities->startPositions($search),
+                fn (string $id): string => $this->generateUrl('activity_show', ['id' => $id]),
+            ),
         ]);
     }
 

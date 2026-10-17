@@ -127,7 +127,7 @@ résolu depuis la racine du projet. L'import est idempotent, donc planifiable (c
 | Écran | Accès |
 |---|---|
 | Tableau de bord (forme, volume 26 semaines, potentiel, dernières sorties) | `/` |
-| Liste des activités, filtre par type | `/activites` |
+| Liste des activités : recherche, tri, carte des départs (regroupés selon le zoom) | `/activites` |
 | Détail d'une activité : carte du parcours (allure), temps de passage au km, tours de la montre, km rapides | `/activites/{id}` |
 | Objectif & prédiction (+ analyse IA) | `/objectif` |
 | Programme d'entraînement jusqu'au dernier objectif calculé | `/programme` |

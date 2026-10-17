@@ -67,6 +67,17 @@
         </form>
     </section>
 
+    {% if start_map %}
+        <section class="card" aria-labelledby="start-map-title">
+            <h2 id="start-map-title">Carte des départs</h2>
+            <p class="card-subtitle">
+                {{ start_map.points|length }} sortie(s) avec trace GPS{% if search.filtered %} correspondant à la recherche{% endif %}, toutes pages confondues.
+                Les départs proches sont regroupés : zoomer ou cliquer sur un groupe pour le détailler.
+            </p>
+            <div class="route-map" data-activities-map="{{ {points: start_map.points, bounds: start_map.bounds}|json_encode }}" role="region" aria-label="Carte des départs des activités"></div>
+        </section>
+    {% endif %}
+
     <section class="card">
         {% if activities is empty and search.filtered %}
             <p class="muted">Aucune activité ne correspond à ces critères.</p>

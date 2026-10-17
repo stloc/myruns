@@ -92,6 +92,11 @@ document.querySelectorAll('select[name="tri"]').forEach((sort) => {
     });
 });
 
+// Carte des départs (page Activités) : même chargement à la demande.
+document.querySelectorAll('[data-activities-map]').forEach((element) => {
+    import('./activities_map.js').then(({ drawActivitiesMap }) => drawActivitiesMap(element));
+});
+
 // Carte de la trace (page détail d'une activité) : Leaflet n'est chargé que sur cette page.
 document.querySelectorAll('[data-route-map]').forEach((element) => {
     import('./route_map.js').then(({ drawRouteMap }) => drawRouteMap(element));
