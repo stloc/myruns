@@ -5,27 +5,74 @@
 {% block body %}
     <div class="page-heading">
         <h1>Activités <span class="muted">({{ total }})</span></h1>
-        <form method="get" class="filters">
-            <label for="sport">Type</label>
-            <select id="sport" name="sport" data-autosubmit>
-                <option value="">Tous</option>
-                {% for sport in sports %}
-                    <option value="{{ sport.value }}" {% if sport == selected_sport %}selected{% endif %}>{{ sport.label }}</option>
-                {% endfor %}
-            </select>
-            <noscript><button type="submit" class="button button-secondary">Filtrer</button></noscript>
-        </form>
     </div>
 
     <section class="card">
-        {{ include('activity/_table.html.twig', {activities: activities}, with_context = false) }}
+        <form method="get" class="search-form" role="search" aria-label="Rechercher des activités">
+            <div class="search-field search-field-wide">
+                <label for="q">Nom contient</label>
+                <input type="search" id="q" name="q" value="{{ search.words|join(' ') }}" placeholder="trail, club, Rennes…">
+            </div>
+            <div class="search-field">
+                <label for="sport">Type</label>
+                <select id="sport" name="sport">
+                    <option value="">Tous</option>
+                    <option value="{{ all_runs }}" {% if search.allRuns %}selected{% endif %}>Course (route, trail, virtuelle)</option>
+                    {% for sport in sports %}
+                        <option value="{{ sport.value }}" {% if sport == search.sport %}selected{% endif %}>{{ sport.label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="search-field">
+                <label for="du">Du</label>
+                <input type="date" id="du" name="du" value="{{ search.from ? search.from|date('Y-m-d') : '' }}">
+            </div>
+            <div class="search-field">
+                <label for="au">Au</label>
+                <input type="date" id="au" name="au" value="{{ search.to ? search.to|date_modify('-1 day')|date('Y-m-d') : '' }}">
+            </div>
+            <div class="search-field">
+                <label for="km_min">Distance min. (km)</label>
+                <input type="number" id="km_min" name="km_min" min="0" step="any" inputmode="decimal" value="{{ search.minKm }}">
+            </div>
+            <div class="search-field">
+                <label for="km_max">Distance max. (km)</label>
+                <input type="number" id="km_max" name="km_max" min="0" step="any" inputmode="decimal" value="{{ search.maxKm }}">
+            </div>
+            <div class="search-field">
+                <label for="dplus_min">D+ min. (m)</label>
+                <input type="number" id="dplus_min" name="dplus_min" min="0" step="1" inputmode="numeric" value="{{ search.minElevation }}">
+            </div>
+            <div class="search-field">
+                <label for="tri">Trier par</label>
+                <select id="tri" name="tri">
+                    {% for sort in sorts %}
+                        <option value="{{ sort.value }}" {% if sort == search.sort %}selected{% endif %}>{{ sort.label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="search-actions">
+                <button type="submit" class="button">Rechercher</button>
+                {% if search.filtered or search.sort.value != 'date' %}
+                    <a href="{{ path('activity_index') }}">Effacer</a>
+                {% endif %}
+            </div>
+        </form>
+    </section>
+
+    <section class="card">
+        {% if activities is empty and search.filtered %}
+            <p class="muted">Aucune activité ne correspond à ces critères.</p>
+        {% else %}
+            {{ include('activity/_table.html.twig', {activities: activities}, with_context = false) }}
+        {% endif %}
 
         {% if page_count > 1 %}
-            {% set query = selected_sport ? {sport: selected_sport.value} : {} %}
+            {% set query = search.toQuery %}
             <nav class="pagination" aria-label="Pagination">
-                {% if page > 1 %}<a href="{{ path('activity_index', query|merge({page: page - 1})) }}">← Plus récentes</a>{% endif %}
+                {% if page > 1 %}<a href="{{ path('activity_index', query|merge({page: page - 1})) }}">← Précédentes</a>{% endif %}
                 <span>Page {{ page }} / {{ page_count }}</span>
-                {% if page < page_count %}<a href="{{ path('activity_index', query|merge({page: page + 1})) }}">Plus anciennes →</a>{% endif %}
+                {% if page < page_count %}<a href="{{ path('activity_index', query|merge({page: page + 1})) }}">Suivantes →</a>{% endif %}
             </nav>
         {% endif %}
     </section>

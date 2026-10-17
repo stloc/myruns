@@ -19,11 +19,6 @@ document.querySelectorAll('[data-chart]').forEach((chart) => {
     });
 });
 
-// Filtre de la liste des activités appliqué dès le changement.
-document.querySelectorAll('select[data-autosubmit]').forEach((select) => {
-    select.addEventListener('change', () => select.form.requestSubmit());
-});
-
 // Les traitements longs (import, analyse IA) désactivent le bouton et l'annoncent.
 document.querySelectorAll('form[data-loading-form]').forEach((form) => {
     form.addEventListener('submit', (event) => {

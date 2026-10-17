@@ -183,7 +183,7 @@ code { font-size: 0.9em; overflow-wrap: anywhere; }
 /* Formulaires */
 .form > div { margin-bottom: 1rem; }
 .form label { display: block; font-weight: 600; margin-bottom: 0.3rem; }
-.form input[type="text"], .form input[type="number"], .form input[type="date"], .form input[type="file"], .filters select {
+.form input[type="text"], .form input[type="number"], .form input[type="date"], .form input[type="file"] {
     width: 100%;
     max-width: 22rem;
     padding: 0.5rem 0.6rem;
@@ -196,9 +196,22 @@ code { font-size: 0.9em; overflow-wrap: anywhere; }
 .form .help-text, .form [id$="_help"] { color: var(--text-muted); font-size: 0.85rem; margin-top: 0.25rem; }
 .form ul { list-style: none; padding: 0; margin: 0.3rem 0 0; color: var(--error-text); font-size: 0.9rem; }
 .form-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; }
-.filters { display: flex; align-items: center; gap: 0.5rem; }
-.filters label { color: var(--text-secondary); }
-.filters select { width: auto; }
+
+/* Recherche d'activités */
+.search-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr)); gap: 0.75rem 1rem; align-items: end; }
+.search-field { display: flex; flex-direction: column; gap: 0.3rem; min-width: 0; }
+.search-field-wide { grid-column: 1 / -1; }
+.search-field label { color: var(--text-secondary); font-size: 0.85rem; font-weight: 600; }
+.search-field input, .search-field select {
+    width: 100%;
+    padding: 0.5rem 0.6rem;
+    border: 1px solid var(--chart-baseline);
+    border-radius: 6px;
+    background: var(--page-bg);
+    color: var(--text);
+    font: inherit;
+}
+.search-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; }
 
 .button {
     display: inline-block;

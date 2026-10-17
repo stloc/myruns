@@ -59,6 +59,28 @@ final class WebDashboardTest extends WebTestCase
         self::assertSelectorTextContains('table', 'Séance seuil');
     }
 
+    public function testActivitySearch(): void
+    {
+        $this->uploadExport();
+
+        $this->client->request('GET', '/activites?q=sortie');
+        self::assertSelectorTextContains('h1', '(12)');
+        self::assertSelectorTextNotContains('table', 'Footing');
+
+        $this->client->request('GET', '/activites?sport=course&km_min=10');
+        self::assertSelectorTextContains('h1', '(12)');
+        self::assertSelectorTextContains('table', 'Sortie longue');
+
+        // Tri par allure : la séance seuil (4:40/km) arrive en tête.
+        $this->client->request('GET', '/activites?tri=allure');
+        self::assertSelectorTextContains('tbody tr:first-child', 'Séance seuil');
+        self::assertSelectorExists('select[name="tri"] option[value="allure"][selected]');
+
+        $this->client->request('GET', '/activites?q=s%C3%A9ance&sport=trail_run');
+        self::assertSelectorTextContains('h1', '(0)');
+        self::assertSelectorTextContains('body', 'Aucune activité ne correspond');
+    }
+
     public function testActivityDetailShowsSplitsFromFitTrack(): void
     {
         // Archive avec CSV + trace FIT rattachée par « Nom du fichier » (colonne Filename).

@@ -6,10 +6,13 @@ namespace App\Controller;
 
 use App\Chart\SplitTable;
 use App\Entity\Activity;
+use App\Enum\ActivitySort;
 use App\Enum\SplitKind;
 use App\Enum\Sport;
 use App\Repository\ActivityRepository;
+use App\Repository\ActivitySearch;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapQueryParameter;
 use Symfony\Component\Routing\Attribute\Route;
@@ -20,17 +23,19 @@ final class ActivityController extends AbstractController
 
     #[Route('/activites', name: 'activity_index', methods: ['GET'])]
     public function index(
+        Request $request,
         ActivityRepository $activities,
-        #[MapQueryParameter] ?string $sport = null,
         #[MapQueryParameter(options: ['min_range' => 1])] int $page = 1,
     ): Response {
-        $selectedSport = null !== $sport ? Sport::tryFrom($sport) : null;
-        $total = $activities->countBySport($selectedSport);
+        $search = ActivitySearch::fromQuery($request->query->all());
+        $total = $activities->countMatching($search);
 
         return $this->render('activity/index.html.twig', [
-            'activities' => $activities->findLatest(self::PER_PAGE, ($page - 1) * self::PER_PAGE, $selectedSport),
+            'activities' => $activities->search($search, self::PER_PAGE, ($page - 1) * self::PER_PAGE),
+            'search' => $search,
             'sports' => Sport::cases(),
-            'selected_sport' => $selectedSport,
+            'sorts' => ActivitySort::cases(),
+            'all_runs' => ActivitySearch::ALL_RUNS,
             'page' => $page,
             'page_count' => max(1, (int) ceil($total / self::PER_PAGE)),
             'total' => $total,

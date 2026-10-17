@@ -6,8 +6,10 @@ namespace App\Repository;
 
 use App\Doctrine\UtcDateTimeImmutableType;
 use App\Entity\Activity;
+use App\Enum\ActivitySort;
 use App\Enum\Sport;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -34,24 +36,76 @@ final class ActivityRepository extends ServiceEntityRepository
     /**
      * @return list<Activity> du plus récent au plus ancien
      */
-    public function findLatest(int $limit, int $offset = 0, ?Sport $sport = null): array
+    public function findLatest(int $limit, int $offset = 0): array
     {
-        $qb = $this->createQueryBuilder('a')
-            ->orderBy('a.startDate', \SortDirection::Descending)
+        return $this->search(new ActivitySearch(), $limit, $offset);
+    }
+
+    /**
+     * @return list<Activity> activités correspondant aux critères, dans l'ordre demandé
+     */
+    public function search(ActivitySearch $search, int $limit, int $offset = 0): array
+    {
+        $qb = $this->searchQuery($search)
             ->setFirstResult($offset)
             ->setMaxResults($limit);
 
-        if (null !== $sport) {
-            $qb->andWhere('a.sport = :sport')->setParameter('sport', $sport);
+        match ($search->sort) {
+            ActivitySort::Date => $qb->orderBy('a.startDate', \SortDirection::Descending),
+            ActivitySort::Distance => $qb->orderBy('a.distanceMeters', \SortDirection::Descending),
+            ActivitySort::Duration => $qb->orderBy('a.movingTimeSeconds', \SortDirection::Descending),
+            ActivitySort::Elevation => $qb->addSelect('COALESCE(a.groundElevationGain, a.elevationGain, 0) AS HIDDEN elevation')
+                ->orderBy('elevation', \SortDirection::Descending),
+            // Les activités sans distance (renforcement, piscine sans longueurs) passent en dernier.
+            ActivitySort::Pace => $qb->addSelect('CASE WHEN a.distanceMeters > 0 THEN a.movingTimeSeconds / a.distanceMeters ELSE 1000000 END AS HIDDEN pace')
+                ->orderBy('pace', \SortDirection::Ascending),
+        };
+        if (ActivitySort::Date !== $search->sort) {
+            $qb->addOrderBy('a.startDate', \SortDirection::Descending);
         }
 
         /* @var list<Activity> */
         return $qb->getQuery()->getResult();
     }
 
-    public function countBySport(?Sport $sport = null): int
+    public function countMatching(ActivitySearch $search): int
     {
-        return $this->count(null === $sport ? [] : ['sport' => $sport]);
+        $count = $this->searchQuery($search)->select('COUNT(a.id)')->getQuery()->getSingleScalarResult();
+
+        return is_numeric($count) ? (int) $count : 0;
+    }
+
+    private function searchQuery(ActivitySearch $search): QueryBuilder
+    {
+        $qb = $this->createQueryBuilder('a');
+
+        foreach ($search->words as $i => $word) {
+            // LIKE ignore la casse (lettres sans accent) ; les jokers saisis sont pris littéralement.
+            $qb->andWhere(\sprintf("a.name LIKE :word%d ESCAPE '!'", $i))
+                ->setParameter('word'.$i, '%'.addcslashes($word, '%_!').'%');
+        }
+        if ($search->allRuns) {
+            $qb->andWhere('a.sport IN (:sports)')->setParameter('sports', self::RUNNING_SPORTS);
+        } elseif (null !== $search->sport) {
+            $qb->andWhere('a.sport = :sport')->setParameter('sport', $search->sport);
+        }
+        if (null !== $search->from) {
+            $qb->andWhere('a.startDate >= :from')->setParameter('from', $search->from, UtcDateTimeImmutableType::NAME);
+        }
+        if (null !== $search->to) {
+            $qb->andWhere('a.startDate < :to')->setParameter('to', $search->to, UtcDateTimeImmutableType::NAME);
+        }
+        if (null !== $search->minKm) {
+            $qb->andWhere('a.distanceMeters >= :minDistance')->setParameter('minDistance', $search->minKm * 1000);
+        }
+        if (null !== $search->maxKm) {
+            $qb->andWhere('a.distanceMeters <= :maxDistance')->setParameter('maxDistance', $search->maxKm * 1000);
+        }
+        if (null !== $search->minElevation) {
+            $qb->andWhere('COALESCE(a.groundElevationGain, a.elevationGain, 0) >= :minElevation')->setParameter('minElevation', $search->minElevation);
+        }
+
+        return $qb;
     }
 
     public function findMostRecent(): ?Activity
