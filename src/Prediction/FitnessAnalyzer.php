@@ -205,7 +205,7 @@ final class FitnessAnalyzer
 
     private function equivalentDistance(Activity $run): float
     {
-        return $run->distanceMeters + self::ELEVATION_EQUIVALENT * ($run->elevationGain ?? 0.0);
+        return $run->distanceMeters + self::ELEVATION_EQUIVALENT * ($run->effectiveElevationGain() ?? 0.0);
     }
 
     private function agePenalty(\DateTimeImmutable $date, \DateTimeImmutable $now): float

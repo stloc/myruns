@@ -15,9 +15,16 @@ framework:
                 base_uri: 'https://intervals.icu'
                 auth_basic: 'API_KEY:%env(INTERVALS_API_KEY)%'
                 timeout: 30
+            # Altimétrie IGN (altitude du terrain pour corriger le D+), service public sans clé.
+            ign.client:
+                base_uri: 'https://data.geopf.fr'
+                timeout: 20
 
 when@test:
     framework:
         test: true
+        # Aucun appel réseau pendant les tests (IGN…) : les tests de synchro injectent leur faux client.
+        http_client:
+            mock_response_factory: App\Tests\Double\NoNetworkResponseFactory
         session:
             storage_factory_id: session.storage.factory.mock_file

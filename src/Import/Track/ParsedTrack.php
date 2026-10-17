@@ -16,6 +16,8 @@ final readonly class ParsedTrack
         public Activity $activity,
         public array $points,
         public array $laps = [],
+        /** D+ calculé sur l'altitude du terrain (modèle IGN) ; renseigné quand les altitudes des points en viennent. */
+        public ?float $groundElevationGain = null,
     ) {
     }
 }

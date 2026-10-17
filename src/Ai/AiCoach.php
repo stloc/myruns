@@ -140,7 +140,7 @@ final class AiCoach
                     'km' => round($a->distanceMeters / 1000, 2),
                     'duree' => Units::formatDuration($a->movingTimeSeconds),
                     'allure' => Units::formatPace($a->paceSecondsPerKm()),
-                    'd_plus_m' => $a->elevationGain,
+                    'd_plus_m' => $a->effectiveElevationGain(),
                     'fc_moy' => $a->averageHeartRate,
                 ],
                 \array_slice($this->activities->findRunsSince($since), 0, 80),

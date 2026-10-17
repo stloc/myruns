@@ -135,7 +135,7 @@ final class MyStravaApp
             'description' => implode(' · ', array_filter([
                 Units::formatDuration($a->movingTimeSeconds),
                 $a->sport->isRunning() ? Units::formatPace($a->paceSecondsPerKm()) : null,
-                null !== $a->elevationGain ? \sprintf('D+ %d m', $a->elevationGain) : null,
+                null !== $a->effectiveElevationGain() ? \sprintf('D+ %d m', $a->effectiveElevationGain()) : null,
                 null !== $a->averageHeartRate ? \sprintf('FC %d', $a->averageHeartRate) : null,
                 $a->name,
             ])),

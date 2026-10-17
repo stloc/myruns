@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Import\Track;
 
+use App\Elevation\ElevationCorrector;
 use App\Enum\SplitKind;
 
 /**
@@ -29,7 +30,8 @@ final class SplitCalculator
      */
     public function splits(ParsedTrack $track): array
     {
-        $splits = $this->kilometers($track->points);
+        // Altitude du terrain déjà lissée : seuil plus fin que pour l'altitude brute de la montre.
+        $splits = $this->kilometers($track->points, null !== $track->groundElevationGain ? ElevationCorrector::ELEVATION_NOISE : self::ELEVATION_NOISE);
         if (\count($track->laps) > 1) {
             foreach ($track->laps as $lap) {
                 $splits[] = [
@@ -51,7 +53,7 @@ final class SplitCalculator
      *
      * @return list<array{kind: SplitKind, distance: float, seconds: float, avg_hr: ?int, max_hr: ?int, elevation_gain: ?float}>
      */
-    public function kilometers(array $points): array
+    public function kilometers(array $points, float $elevationNoise = self::ELEVATION_NOISE): array
     {
         $splits = [];
         if (\count($points) < 2) {
@@ -109,7 +111,7 @@ final class SplitCalculator
             if (null !== $b->altitudeMeters) {
                 if (null === $lastAltitude) {
                     $lastAltitude = $b->altitudeMeters;
-                } elseif (abs($b->altitudeMeters - $lastAltitude) >= self::ELEVATION_NOISE) {
+                } elseif (abs($b->altitudeMeters - $lastAltitude) >= $elevationNoise) {
                     $gain += max(0.0, $b->altitudeMeters - $lastAltitude);
                     $lastAltitude = $b->altitudeMeters;
                 }

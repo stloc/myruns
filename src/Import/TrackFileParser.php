@@ -84,7 +84,7 @@ final class TrackFileParser
         $points = [];
         foreach ($fit->records as $record) {
             if (null !== $record->distanceMeters) {
-                $points[] = new TrackPoint($record->timestamp, $record->distanceMeters, $record->heartRate, $record->altitudeMeters);
+                $points[] = new TrackPoint($record->timestamp, $record->distanceMeters, $record->heartRate, $record->altitudeMeters, $record->latitude, $record->longitude);
             }
         }
         if (\count($points) < 2) {
@@ -127,7 +127,7 @@ final class TrackFileParser
             foreach ($node->xpath('.//*[local-name()="hr"]') ?: [] as $hrNode) {
                 $hr = (int) $hrNode;
             }
-            $points[] = new TrackPoint($time, $distance, $hr, isset($node->ele) ? (float) $node->ele : null);
+            $points[] = new TrackPoint($time, $distance, $hr, isset($node->ele) ? (float) $node->ele : null, $lat, $lon);
         }
         if (\count($points) < 2) {
             return null;
@@ -175,6 +175,8 @@ final class TrackFileParser
                 (float) $point->DistanceMeters,
                 isset($point->HeartRateBpm) ? (int) $point->HeartRateBpm->Value : null,
                 isset($point->AltitudeMeters) ? (float) $point->AltitudeMeters : null,
+                isset($point->Position) ? (float) $point->Position->LatitudeDegrees : null,
+                isset($point->Position) ? (float) $point->Position->LongitudeDegrees : null,
             );
         }
 

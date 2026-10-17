@@ -15,6 +15,18 @@ final readonly class TrackPoint
         public float $distanceMeters,
         public ?int $heartRate = null,
         public ?float $altitudeMeters = null,
+        public ?float $latitude = null,
+        public ?float $longitude = null,
     ) {
+    }
+
+    public function hasPosition(): bool
+    {
+        return null !== $this->latitude && null !== $this->longitude;
+    }
+
+    public function withAltitude(float $altitudeMeters): self
+    {
+        return new self($this->timestamp, $this->distanceMeters, $this->heartRate, $altitudeMeters, $this->latitude, $this->longitude);
     }
 }

@@ -23,8 +23,11 @@ services:
     App\:
         resource: '../src/'
 
-    # add more service definitions when explicit configuration is needed
-    # please note that last definitions always *replace* previous ones
+    # Altitudes IGN déjà obtenues : dans le dossier de données, pour survivre à cache:clear et aux
+    # mises à jour de l'app de bureau (un réimport ne refait aucun appel réseau).
+    app.elevation_cache:
+        class: Symfony\Component\Cache\Adapter\FilesystemAdapter
+        arguments: ['ign', 0, '%app.data_dir%/elevation-cache']
 
 when@test:
     parameters:
@@ -34,4 +37,5 @@ when@test:
     services:
         # Jamais d'appel réel à l'API IA pendant les tests.
         App\Tests\Double\FakeCoachPlatform: ~
+        App\Tests\Double\NoNetworkResponseFactory: ~
         Symfony\AI\Platform\PlatformInterface: '@App\Tests\Double\FakeCoachPlatform'

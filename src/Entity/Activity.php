@@ -30,6 +30,10 @@ class Activity
     #[ORM\Column(nullable: true)]
     public private(set) ?int $sustainedMaxHeartRate = null;
 
+    /** D+ recalculé sur l'altitude du terrain (IGN) à partir des positions GPS de la trace. */
+    #[ORM\Column(nullable: true)]
+    public private(set) ?float $groundElevationGain = null;
+
     /** @var Collection<int, ActivitySplit> */
     #[ORM\OneToMany(targetEntity: ActivitySplit::class, mappedBy: 'activity', cascade: ['persist'], orphanRemoval: true)]
     #[ORM\OrderBy(['kind' => \SortDirection::Ascending, 'position' => \SortDirection::Ascending])]
@@ -115,7 +119,7 @@ class Activity
      *
      * @return bool true si quelque chose a changé
      */
-    public function replaceTrackData(array $splits, ?int $sustainedMaxHeartRate): bool
+    public function replaceTrackData(array $splits, ?int $sustainedMaxHeartRate, ?float $groundElevationGain = null): bool
     {
         $positions = [];
         $new = [];
@@ -124,7 +128,7 @@ class Activity
             $new[] = new ActivitySplit($this, $split['kind'], $position, $split['distance'], $split['seconds'], $split['avg_hr'], $split['max_hr'], $split['elevation_gain']);
         }
 
-        if (self::describeSplits($this->splits->toArray()) === self::describeSplits($new) && $this->sustainedMaxHeartRate === $sustainedMaxHeartRate) {
+        if (self::describeSplits($this->splits->toArray()) === self::describeSplits($new) && $this->sustainedMaxHeartRate === $sustainedMaxHeartRate && $this->groundElevationGain === $groundElevationGain) {
             return false;
         }
 
@@ -133,8 +137,17 @@ class Activity
             $this->splits->add($split);
         }
         $this->sustainedMaxHeartRate = $sustainedMaxHeartRate;
+        $this->groundElevationGain = $groundElevationGain;
 
         return true;
+    }
+
+    /**
+     * D+ le plus fiable : celui du terrain s'il a pu être calculé, sinon celui de la source.
+     */
+    public function effectiveElevationGain(): ?float
+    {
+        return $this->groundElevationGain ?? $this->elevationGain;
     }
 
     /**

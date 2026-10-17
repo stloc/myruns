@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Import;
 
+use App\Elevation\ElevationCorrector;
 use App\Entity\Activity;
 use App\Enum\Sport;
 use App\Import\Track\ParsedTrack;
@@ -35,6 +36,7 @@ final class ActivityImporter
         private readonly StravaCsvParser $csvParser,
         private readonly TrackFileParser $trackParser,
         private readonly SplitCalculator $splitCalculator,
+        private readonly ElevationCorrector $elevationCorrector,
         #[Autowire('%kernel.project_dir%')] private readonly string $projectDir,
     ) {
     }
@@ -178,12 +180,29 @@ final class ActivityImporter
 
     private function attachSplits(Activity $activity, ParsedTrack $track, ImportResult $result): void
     {
-        // Pas de temps de passage pertinents en piscine.
-        $splits = Sport::Swim === $activity->sport ? [] : $this->splitCalculator->splits($track);
+        // Pas de temps de passage ni de relief pertinents en piscine.
+        $ground = Sport::Swim === $activity->sport ? null : $this->elevationCorrector->correct($track);
+        if (null !== $ground) {
+            ++$result->groundElevation;
+        } elseif (Sport::Swim !== $activity->sport && $this->hasPosition($track)) {
+            ++$result->groundElevationMissing;
+        }
+        $splits = Sport::Swim === $activity->sport ? [] : $this->splitCalculator->splits($ground ?? $track);
 
-        if ($activity->replaceTrackData($splits, $this->splitCalculator->sustainedMaxHeartRate($track->points))) {
+        if ($activity->replaceTrackData($splits, $this->splitCalculator->sustainedMaxHeartRate($track->points), $ground?->groundElevationGain)) {
             ++$result->withSplits;
         }
+    }
+
+    private function hasPosition(ParsedTrack $track): bool
+    {
+        foreach ($track->points as $point) {
+            if ($point->hasPosition()) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function count(UpsertOutcome $outcome, ImportResult $result): void

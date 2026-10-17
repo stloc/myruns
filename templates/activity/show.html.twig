@@ -35,7 +35,13 @@
         </div>
         <div class="stat-tile">
             <span class="stat-label">Dénivelé positif</span>
-            <span class="stat-value">{{ activity.elevationGain is not null ? activity.elevationGain|number_format(0, ',', ' ') ~ ' m' : '–' }}</span>
+            <span class="stat-value">{{ activity.effectiveElevationGain is not null ? activity.effectiveElevationGain|number_format(0, ',', ' ') ~ ' m' : '–' }}</span>
+            {% if activity.groundElevationGain is not null %}
+                <span class="stat-detail">
+                    terrain IGN
+                    {%- if activity.elevationGain is not null %} · enregistré {{ activity.elevationGain|number_format(0, ',', ' ') }} m{% endif %}
+                </span>
+            {% endif %}
         </div>
     </section>
 

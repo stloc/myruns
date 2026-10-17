@@ -24,7 +24,7 @@
                         <td class="num">{{ activity.distanceMeters|distance }}</td>
                         <td class="num">{{ activity.movingTimeSeconds|duration }}</td>
                         <td class="num">{{ activity.sport.isRunning ? activity.paceSecondsPerKm|pace : '–' }}</td>
-                        <td class="num">{{ activity.elevationGain is not null ? activity.elevationGain|number_format(0, ',', ' ') ~ ' m' : '–' }}</td>
+                        <td class="num">{{ activity.effectiveElevationGain is not null ? activity.effectiveElevationGain|number_format(0, ',', ' ') ~ ' m' : '–' }}</td>
                         <td class="num">{{ activity.averageHeartRate is not null ? activity.averageHeartRate|number_format(0) : '–' }}</td>
                     </tr>
                 {% endfor %}
