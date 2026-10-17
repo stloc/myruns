@@ -74,6 +74,20 @@ ddev exec bin/console app:import imports/export_12345678.zip
 ddev exec bin/console app:import            # dossier STRAVA_EXPORT_PATH (défaut : imports/)
 ```
 
+Pendant l'import, chaque trace GPS reçoit :
+
+- un **D+ recalculé sur le terrain** (`src/Elevation/`) : un point tous les 10 m est envoyé au
+  service d'altimétrie de l'IGN (RGE ALTI, France, sans clé), lissé (moyenne sur 5 points, seuil
+  de 1 m), puis les altitudes sont interpolées sur toute la trace (D+ au km compris). Réglages
+  calibrés sur des sorties dont Strava avait corrigé le D+. Réponses mises en cache dans
+  `<données>/elevation-cache` : un réimport ne refait aucun appel. Hors de France ou sans réseau,
+  le D+ de la source est gardé. Depuis la page web, le temps réseau est plafonné à 2 minutes par
+  import (relancer pour compléter) ; `app:import` n'a pas de limite.
+- un type **Trail** si la source le déclare (intervals.icu `TrailRun`, GPX/TCX) ou si le nom
+  contient « trail » : le CSV Strava ne donne que l'ancien type « Course à pied », mais le nom
+  automatique (« Trail le matin ») garde le type précis. Le sous-sport FIT « trail » est ignoré
+  (mode montre utilisé aussi sur route).
+
 Sous DDEV, seul le dossier du projet est visible depuis le conteneur : déposer les archives dans
 `imports/` (ignoré par git) ou y faire un lien vers le dossier synchronisé. Un chemin relatif est
 résolu depuis la racine du projet. L'import est idempotent, donc planifiable (cron de l'hôte) :

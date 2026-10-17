@@ -44,6 +44,7 @@ peut ensuite commenter ce résultat et proposer des conseils d'entraînement.
 | Répertoire | Rôle |
 |---|---|
 | `src/Import/` | Lecture de l'archive Strava (`activities.csv`) et des fichiers GPX/TCX |
+| `src/Elevation/` | Dénivelé recalculé sur l'altitude du terrain (service d'altimétrie de l'IGN) |
 | `src/Entity/`, `src/Repository/` | Activités, profil du coureur, courses officielles (base SQLite) |
 | `src/Settings/` | Clés d'accès saisies dans la page *Réglages* (fichier `settings.json`) |
 | `src/Prediction/` | Niveau de forme (VDOT), projection et pourcentage de réussite |
@@ -84,8 +85,9 @@ flowchart LR
 
 - Flux entrant : aucun depuis le réseau. L'application Windows écoute uniquement sur `127.0.0.1`
   (le poste lui-même) ; en développement, HTTPS local `mystrava.ddev.site` (routeur DDEV).
-- Flux sortants : HTTPS vers intervals.icu (synchro des séances) et vers l'API Anthropic (seulement
-  quand on lance l'analyse IA).
+- Flux sortants : HTTPS vers intervals.icu (synchro des séances), vers l'IGN `data.geopf.fr`
+  (altitude du terrain, à l'import d'une trace GPS) et vers l'API Anthropic (seulement quand on
+  lance l'analyse IA).
 
 # Développement
 
@@ -112,7 +114,7 @@ SQLite : un fichier `mystrava.db` dans le dossier des données (application Wind
 
 | Table | Contenu |
 |---|---|
-| `activity` | Une ligne par sortie : identifiant (n° Strava ou nom du fichier), type de sport, date de départ, distance, durées, dénivelé, fréquence cardiaque moyenne, source (CSV ou trace) |
+| `activity` | Une ligne par sortie : identifiant (n° Strava ou nom du fichier), type de sport, date de départ, distance, durées, dénivelé (celui de la source et celui recalculé sur le terrain), fréquence cardiaque moyenne, source (CSV ou trace) |
 | `athlete_profile` | Une seule ligne : FC max et de repos, année de naissance, année de début de la course, poids actuel et visé (tous facultatifs), dernier objectif saisi (distance, temps, date), réglages du programme (sorties par semaine, jour et heure du club) |
 | `training_week_override` | Ajustements du programme par semaine (lundi de la semaine, club oui/non, nombre de sorties) |
 | `race_result` | Courses officielles saisies : date, distance, temps, nom |
@@ -133,13 +135,16 @@ le profil, les courses officielles et les ajustements du programme, non : sauveg
     Clé personnelle saisie dans *Réglages* (ou `INTERVALS_API_KEY`).
   - API Anthropic (Messages), seulement pour le coach IA ; clé saisie dans *Réglages* (ou
     `ANTHROPIC_API_KEY`), facturée au propriétaire de la clé.
+  - Service d'altimétrie de l'IGN (Géoplateforme, public, gratuit, sans clé) : altitude du
+    terrain sous les positions GPS d'une trace, pour corriger le dénivelé. France seulement ;
+    réponses gardées dans le dossier `elevation-cache` des données (un réimport ne le rappelle pas).
   - L'API Strava n'est **pas** utilisée (payante depuis juin 2026, usage IA interdit).
 
 ## Flux
 
 1. L'utilisateur télécharge son archive Strava, ou laisse un outil tiers remplir un dossier de traces.
-2. L'import (page *Import* ou `app:import`) lit `activities.csv` et les fichiers `.gpx`/`.tcx`
-   (y compris `.gz`). Les fichiers `.fit` sont ignorés : leurs données sont déjà dans le CSV.
+2. L'import (page *Import* ou `app:import`) lit `activities.csv` et les traces `.fit`/`.gpx`/`.tcx`
+   (y compris `.gz`) : temps de passage, FC tenue et D+ recalculé sur le terrain (IGN).
 3. Chaque activité est ajoutée ou mise à jour en base ; une sortie déjà connue n'est pas dupliquée.
 4. Pour un objectif, le calcul utilise les courses à pied des 12 dernières semaines.
 5. Sur demande, le résultat et l'historique sont envoyés au coach IA, qui renvoie un pourcentage
@@ -157,7 +162,7 @@ le profil, les courses officielles et les ajustements du programme, non : sauveg
 | Menu | Lien | Contenu |
 |---|---|---|
 | Tableau de bord | [https://mystrava.ddev.site/](https://mystrava.ddev.site/) | Forme, volume par semaine, potentiel 5 km → marathon, dernières sorties |
-| Activités | [https://mystrava.ddev.site/activites](https://mystrava.ddev.site/activites) | Toutes les activités, filtre par type ; clic sur un nom → détail |
+| Activités | [https://mystrava.ddev.site/activites](https://mystrava.ddev.site/activites) | Recherche (nom, type, période, distance, D+) et tri ; clic sur un nom → détail |
 | Détail d'une activité | `https://mystrava.ddev.site/activites/<identifiant Strava>` | Temps de passage au km, tours de la montre, km rapides |
 | Objectif | [https://mystrava.ddev.site/objectif](https://mystrava.ddev.site/objectif) | Pourcentage de réussite d'un objectif, analyse IA |
 | Programme | [https://mystrava.ddev.site/programme](https://mystrava.ddev.site/programme) | Programme d'entraînement semaine par semaine jusqu'à l'objectif |
@@ -240,6 +245,19 @@ le profil, les courses officielles et les ajustements du programme, non : sauveg
   réimporter l'archive Strava complète (avec le dossier `activities/`).
 - **FC max affichée très élevée (plus de 195) sur une sortie tranquille** → artefact du capteur
   optique au poignet → se fier à la « FC tenue 10 s » et aux courses pour renseigner le profil.
+- **« D+ du terrain indisponible pour N trace(s) »** dans le résumé d'import → sorties hors de
+  France (non couvertes par l'IGN), pas de connexion internet, ou délai dépassé lors du premier
+  import d'une grosse archive depuis la page web → relancer l'import : les traces déjà corrigées
+  ne sont pas redemandées. Hors de France, le D+ de la montre reste affiché (normal).
+- **Le D+ diffère de celui de la montre ou de Strava** → comportement normal : le D+ est
+  recalculé sur l'altitude du terrain (mention « terrain IGN » sur le détail, avec la valeur
+  enregistrée à côté). Une montre sans baromètre surestime ou sous-estime souvent le relief.
+- **Une course apparaît en « Course » au lieu de « Trail » (ou l'inverse)** → le type vient de la
+  source (intervals.icu, fichier) ou du nom de la sortie : un nom contenant « trail » classe la
+  course en Trail → renommer la sortie (dans Strava / intervals.icu) puis réimporter ou resynchroniser.
+- **« Aucune activité ne correspond à ces critères. »** (Activités) → critères trop restrictifs →
+  cliquer sur **Effacer**. La recherche par nom ignore la casse mais pas les accents
+  (« seance » ne trouve pas « Séance »).
 - **Le nombre d'activités n'augmente pas après un import** → les sorties étaient déjà connues
   (« déjà connue(s) » dans le résumé) : comportement normal.
 
@@ -317,9 +335,12 @@ flèches pour naviguer, Entrée pour valider, Échap pour revenir, Ctrl+C pour q
 - **Tableau de bord** : quatre indicateurs (indice de forme, volume moyen, nombre de sorties,
   sortie longue), histogramme des kilomètres par semaine (survol : valeur de la semaine ;
   « Voir les données » : tableau), temps potentiels du 5 km au marathon, dernières activités.
-- **Activités** : tableau de toutes les sorties, filtre par type, 50 par page. Le symbole ⏱
+- **Activités** : formulaire de recherche (mots du nom, type — dont « Course » qui regroupe
+  route, trail et virtuelle —, période, distance min. et max., D+ min.) et tri (plus récentes,
+  plus longues, plus de dénivelé, allure la plus rapide…) ; résultats par 50. Le symbole ⏱
   indique que les temps de passage sont disponibles.
-- **Détail d'une activité** : résumé (distance, temps, allure, FC, D+), tableau des passages au
+- **Détail d'une activité** : résumé (distance, temps, allure, FC, D+ ; « terrain IGN » quand le
+  D+ a été recalculé sur le relief, avec la valeur enregistrée par la montre), tableau des passages au
   kilomètre avec une barre de vitesse et le repère « rapide » pour les fractions nettement plus
   rapides que l'allure médiane, et les tours de la montre quand ils diffèrent des kilomètres.
 - **Objectif** : formulaire distance / temps / date ; le résultat affiche le pourcentage, une jauge,
@@ -375,6 +396,14 @@ L'affichage suit le thème clair ou sombre du système.
 
 1. Ouvrir [https://mystrava.ddev.site/activites](https://mystrava.ddev.site/activites).
 2. Cliquer sur le nom de l'activité : les kilomètres et les tours s'affichent.
+
+**Retrouver une sortie**
+
+1. Ouvrir [https://mystrava.ddev.site/activites](https://mystrava.ddev.site/activites).
+2. Saisir un ou plusieurs mots du nom (« cani », « club »…), et/ou choisir un type, une période,
+   une distance ou un D+ minimal.
+3. **Rechercher**. Changer « Trier par » pour voir par exemple les sorties avec le plus de
+   dénivelé ; **Effacer** revient à la liste complète.
 
 **Affiner les prédictions avec son profil**
 

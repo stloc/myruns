@@ -33,6 +33,13 @@ tournent aussi sur l'hôte. `ddev start` ne demande `sudo` qu'au tout premier d�
   via `Activity::$trackFile` (colonne « Nom du fichier ») → `ActivitySplit` (km calculés, tours de
   montre) + `sustainedMaxHeartRate`. Ne jamais versionner une trace réelle (GPS de l'utilisateur) :
   fichiers FIT de test générés par `tests/Fit/FitFileBuilder.php`.
+- D+ : `Activity::$elevationGain` = valeur de la source (jamais modifiée), `$groundElevationGain` =
+  terrain IGN (`src/Elevation/`, posé par `replaceTrackData()`) ; lire `effectiveElevationGain()`.
+  Cache IGN persistant `app.elevation_cache` (dossier de données, hors `cache:clear`). En test,
+  tout client HTTP du conteneur répond 503 (`tests/Double/NoNetworkResponseFactory`) : les tests
+  du D+ construisent `IgnAltimetry` avec leur `MockHttpClient`.
+- Trail : type déclaré par la source ou nom contenant « trail » (`Sport::refinedByName()`), jamais
+  le sous-sport FIT (mode montre utilisé aussi sur route).
 - Estimation cardiaque : Karvonen (FC repos par défaut 60) ; ignorée si une course < 12 semaines.
 - Entité `Activity` : propriétés `public private(set)` (lecture publique), modification via
   `replaceWith()` uniquement. Toute évolution de schéma → migration relue (`migrations/`).
