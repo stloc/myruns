@@ -23,6 +23,17 @@
     --error-bg: #fde4e4;
     --error-text: #a11d1d;
     --shadow: 0 1px 2px rgba(11, 11, 11, 0.06);
+    /* Carte : allure du plus rapide (1, rouge : effort) au plus lent (5, vert), lisible sur le fond OpenStreetMap. */
+    --route-pace-1: #dc2626;
+    --route-pace-2: #d97706;
+    --route-pace-3: #6d28d9;
+    --route-pace-4: #2563eb;
+    --route-pace-5: #059669;
+    --route-stop: #78716c;
+    --route-start: #16a34a;
+    --route-finish: #0b0b0b;
+    --route-marker-border: #ffffff;
+    --map-tiles-filter: none;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -49,6 +60,17 @@
         --error-bg: #2f1212;
         --error-text: #f08a8a;
         --shadow: none;
+        --route-pace-1: #f87171;
+        --route-pace-2: #fbbf24;
+        --route-pace-3: #a78bfa;
+        --route-pace-4: #60a5fa;
+        --route-pace-5: #34d399;
+        --route-stop: #a8a29e;
+        --route-start: #4ade80;
+        --route-finish: #f0efec;
+        --route-marker-border: #1a1a19;
+        /* Fond de carte assombri pour ne pas éblouir en mode sombre. */
+        --map-tiles-filter: brightness(0.7) contrast(1.1) saturate(0.6);
     }
 }
 
@@ -276,3 +298,36 @@ code { font-size: 0.9em; overflow-wrap: anywhere; }
 .form input[type="time"] { padding: 0.45rem 0.6rem; border: 1px solid var(--chart-baseline); border-radius: 6px; background: var(--page-bg); color: var(--text); font: inherit; }
 .plan-week-form { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1rem; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border); font-size: 0.9rem; }
 .plan-week-form select { margin-left: 0.35rem; padding: 0.3rem 0.4rem; border: 1px solid var(--chart-baseline); border-radius: 6px; background: var(--page-bg); color: var(--text); font: inherit; }
+
+/* Carte de la trace */
+.route-map {
+    height: clamp(260px, 55vh, 480px);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--meter-track);
+}
+.route-map .leaflet-tile-pane { filter: var(--map-tiles-filter); }
+.route-line { stroke-linecap: round; stroke-linejoin: round; stroke-opacity: 0.95; }
+.route-pace-1 { stroke: var(--route-pace-1); --swatch: var(--route-pace-1); }
+.route-pace-2 { stroke: var(--route-pace-2); --swatch: var(--route-pace-2); }
+.route-pace-3 { stroke: var(--route-pace-3); --swatch: var(--route-pace-3); }
+.route-pace-4 { stroke: var(--route-pace-4); --swatch: var(--route-pace-4); }
+.route-pace-5 { stroke: var(--route-pace-5); --swatch: var(--route-pace-5); }
+.route-stop { stroke: var(--route-stop); --swatch: var(--route-stop); stroke-dasharray: 4 6; }
+.route-start, .route-finish { stroke: var(--route-marker-border); stroke-width: 2; fill-opacity: 1; }
+.route-start { fill: var(--route-start); }
+.route-finish { fill: var(--route-finish); }
+/* Bulles Leaflet (blanches par défaut) aux couleurs du thème, lisibles en mode sombre. */
+.route-map .leaflet-popup-content-wrapper,
+.route-map .leaflet-popup-tip,
+.route-map .leaflet-tooltip { background: var(--surface); color: var(--text); border-color: var(--border); }
+.route-map .leaflet-tooltip-top::before { border-top-color: var(--surface); }
+.route-map .leaflet-tooltip-bottom::before { border-bottom-color: var(--surface); }
+.route-map .leaflet-tooltip-left::before { border-left-color: var(--surface); }
+.route-map .leaflet-tooltip-right::before { border-right-color: var(--surface); }
+.route-map .leaflet-bar a,
+.route-map.leaflet-container .leaflet-control-attribution { background: var(--surface); color: var(--text-secondary); border-color: var(--border); }
+.route-map.leaflet-container .leaflet-control-attribution a { color: var(--accent); }
+.route-legend { display: flex; flex-wrap: wrap; gap: 0.35rem 1.25rem; margin: 0.75rem 0 0; padding: 0; list-style: none; font-size: 0.85rem; color: var(--text-secondary); }
+.route-legend li { display: flex; align-items: center; gap: 0.4rem; }
+.route-legend li::before { content: ""; width: 1.25rem; height: 0.3rem; border-radius: 999px; background: var(--swatch); }

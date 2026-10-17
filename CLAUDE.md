@@ -41,6 +41,11 @@ tournent aussi sur l'hôte. `ddev start` ne demande `sudo` qu'au tout premier d�
   (dossier de données, hors `cache:clear`) ; ancien format IGN (`null` = trace hors zone) encore lu.
   En test, tout client HTTP du conteneur répond 503 (`tests/Double/NoNetworkResponseFactory`) :
   les tests du D+ construisent `IgnAltimetry` / `OpenMeteoElevation` avec leur `MockHttpClient`.
+- Carte : trace simplifiée (`RouteSimplifier`, 20 m, ≤ 2 000 points) dans `ActivityRoute` (table
+  à part, OneToOne porté par `Activity` avec `orphanRemoval` : SQLite n'applique pas les clés
+  étrangères), posée par `replaceTrackData()`. Allure par tronçon calculée en PHP
+  (`src/Chart/RouteMap.php`), dessin Leaflet chargé à la demande (`assets/route_map.js`), tuiles
+  OSM = seul appel réseau du navigateur (autorisé dans la CSP Tauri `img-src`).
 - Trail : type déclaré par la source ou nom contenant « trail » (`Sport::refinedByName()`), jamais
   le sous-sport FIT (mode montre utilisé aussi sur route).
 - Estimation cardiaque : Karvonen (FC repos par défaut 60) ; ignorée si une course < 12 semaines.

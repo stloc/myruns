@@ -34,6 +34,11 @@ class Activity
     #[ORM\Column(nullable: true)]
     public private(set) ?float $groundElevationGain = null;
 
+    /** Trace GPS simplifiée (chargée seulement quand on la lit : page détail). */
+    #[ORM\OneToOne(cascade: ['persist'], orphanRemoval: true)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?ActivityRoute $route = null;
+
     /** @var Collection<int, ActivitySplit> */
     #[ORM\OneToMany(targetEntity: ActivitySplit::class, mappedBy: 'activity', cascade: ['persist'], orphanRemoval: true)]
     #[ORM\OrderBy(['kind' => \SortDirection::Ascending, 'position' => \SortDirection::Ascending])]
@@ -116,11 +121,17 @@ class Activity
      * Remplace les temps de passage issus de la trace (sans toucher à la base s'ils sont identiques).
      *
      * @param list<array{kind: SplitKind, distance: float, seconds: float, avg_hr: ?int, max_hr: ?int, elevation_gain: ?float}> $splits
+     * @param list<array{0: float, 1: float, 2: float, 3: int}>                                                                 $routePoints trace simplifiée (vide sans GPS)
      *
      * @return bool true si quelque chose a changé
      */
-    public function replaceTrackData(array $splits, ?int $sustainedMaxHeartRate, ?float $groundElevationGain = null): bool
+    public function replaceTrackData(array $splits, ?int $sustainedMaxHeartRate, ?float $groundElevationGain = null, array $routePoints = []): bool
     {
+        $placeChanged = $routePoints !== ($this->route->points ?? []);
+        if ($placeChanged) {
+            $this->route = [] === $routePoints ? null : new ActivityRoute($routePoints);
+        }
+
         $positions = [];
         $new = [];
         foreach ($splits as $split) {
@@ -129,7 +140,7 @@ class Activity
         }
 
         if (self::describeSplits($this->splits->toArray()) === self::describeSplits($new) && $this->sustainedMaxHeartRate === $sustainedMaxHeartRate && $this->groundElevationGain === $groundElevationGain) {
-            return false;
+            return $placeChanged;
         }
 
         $this->splits->clear();
@@ -140,6 +151,14 @@ class Activity
         $this->groundElevationGain = $groundElevationGain;
 
         return true;
+    }
+
+    /**
+     * @return list<array{0: float, 1: float, 2: float, 3: int}> trace simplifiée, vide sans GPS
+     */
+    public function routePoints(): array
+    {
+        return $this->route->points ?? [];
     }
 
     /**

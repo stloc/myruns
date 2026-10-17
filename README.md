@@ -76,6 +76,11 @@ ddev exec bin/console app:import            # dossier STRAVA_EXPORT_PATH (défau
 
 Pendant l'import, chaque trace GPS reçoit :
 
+- une **trace simplifiée** pour la carte de la page détail (`ActivityRoute`, un point tous les
+  20 m, 2 000 points au plus ; jamais pour la natation). Carte Leaflet sur fond OpenStreetMap,
+  tronçons de 100 m colorés selon l'allure (vitesse hors course à pied) en 5 classes de même
+  effectif, arrêts en pointillés (`src/Chart/RouteMap.php`). Activités importées avant cette
+  version : relancer l'import de l'archive (ou une synchro) pour obtenir leur carte ;
 - un **D+ recalculé sur le terrain** (`src/Elevation/`), partout dans le monde : un point tous
   les 10 m est envoyé au service d'altimétrie de l'IGN (RGE ALTI, France, sans clé) ; les points
   qu'il ne couvre pas (étranger, mer) sont demandés à l'API d'altitude d'**Open-Meteo** (modèle
@@ -106,7 +111,7 @@ résolu depuis la racine du projet. L'import est idempotent, donc planifiable (c
 |---|---|
 | Tableau de bord (forme, volume 26 semaines, potentiel, dernières sorties) | `/` |
 | Liste des activités, filtre par type | `/activites` |
-| Détail d'une activité : temps de passage au km, tours de la montre, km rapides | `/activites/{id}` |
+| Détail d'une activité : carte du parcours (allure), temps de passage au km, tours de la montre, km rapides | `/activites/{id}` |
 | Objectif & prédiction (+ analyse IA) | `/objectif` |
 | Programme d'entraînement jusqu'au dernier objectif calculé | `/programme` |
 | Import | `/import` |

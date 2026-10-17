@@ -8,6 +8,7 @@ use App\Elevation\ElevationCorrector;
 use App\Entity\Activity;
 use App\Enum\Sport;
 use App\Import\Track\ParsedTrack;
+use App\Import\Track\RouteSimplifier;
 use App\Import\Track\SplitCalculator;
 use App\Repository\ActivityRepository;
 use App\Repository\UpsertOutcome;
@@ -38,6 +39,7 @@ final class ActivityImporter
         private readonly SplitCalculator $splitCalculator,
         private readonly ElevationCorrector $elevationCorrector,
         #[Autowire('%kernel.project_dir%')] private readonly string $projectDir,
+        private readonly RouteSimplifier $routeSimplifier = new RouteSimplifier(),
     ) {
     }
 
@@ -180,7 +182,7 @@ final class ActivityImporter
 
     private function attachSplits(Activity $activity, ParsedTrack $track, ImportResult $result): void
     {
-        // Pas de temps de passage ni de relief pertinents en piscine.
+        // Pas de temps de passage, de relief ni de carte pertinents en piscine.
         $ground = Sport::Swim === $activity->sport ? null : $this->elevationCorrector->correct($track);
         if (null !== $ground) {
             ++$result->groundElevation;
@@ -188,8 +190,9 @@ final class ActivityImporter
             ++$result->groundElevationMissing;
         }
         $splits = Sport::Swim === $activity->sport ? [] : $this->splitCalculator->splits($ground ?? $track);
+        $route = Sport::Swim === $activity->sport ? [] : $this->routeSimplifier->simplify($track->points);
 
-        if ($activity->replaceTrackData($splits, $this->splitCalculator->sustainedMaxHeartRate($track->points), $ground?->groundElevationGain)) {
+        if ($activity->replaceTrackData($splits, $this->splitCalculator->sustainedMaxHeartRate($track->points), $ground?->groundElevationGain, $route)) {
             ++$result->withSplits;
         }
     }

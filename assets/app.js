@@ -40,3 +40,8 @@ document.querySelectorAll('form[data-loading-form]').forEach((form) => {
         form.querySelectorAll('button').forEach((b) => { b.disabled = true; });
     });
 });
+
+// Carte de la trace (page détail d'une activité) : Leaflet n'est chargé que sur cette page.
+document.querySelectorAll('[data-route-map]').forEach((element) => {
+    import('./route_map.js').then(({ drawRouteMap }) => drawRouteMap(element));
+});

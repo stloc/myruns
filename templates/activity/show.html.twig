@@ -45,6 +45,19 @@
         </div>
     </section>
 
+    {% if route_map %}
+        <section class="card" aria-labelledby="route-map-title">
+            <h2 id="route-map-title">Parcours</h2>
+            <p class="card-subtitle">Trace colorée selon {{ activity.sport.isRunning ? 'l\'allure' : 'la vitesse' }}, par tronçons d'environ 100 m (survolez la trace pour la valeur).</p>
+            <div class="route-map" data-route-map="{{ route_map.toArray|json_encode }}" role="img" aria-label="Carte du parcours"></div>
+            <ul class="route-legend" aria-label="Légende">
+                {% for item in route_map.legend %}
+                    <li class="route-{{ item.class }}">{{ item.label }}</li>
+                {% endfor %}
+            </ul>
+        </section>
+    {% endif %}
+
     {% if laps %}
         <section class="card">
             <h2>Tours de la montre</h2>

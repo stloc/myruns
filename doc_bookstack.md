@@ -247,6 +247,12 @@ le profil, les courses officielles et les ajustements du programme, non : sauveg
 - **« Pas de trace GPS ou de capteur de distance pour cette activité… »** sur le détail →
   l'activité vient d'un import du seul CSV, ou n'a pas de trace (natation, saisie manuelle) →
   réimporter l'archive Strava complète (avec le dossier `activities/`).
+- **Pas de carte « Parcours » sur le détail d'une activité** → l'activité a été importée avant
+  l'ajout de la carte, n'a pas de positions GPS (tapis, home-trainer, CSV seul) ou est une séance de
+  natation → réimporter l'archive Strava complète ou lancer une synchro ; sans GPS, pas de carte (normal).
+- **Carte grise, seule la trace colorée apparaît** → fond OpenStreetMap injoignable (pas
+  d'internet, proxy ou pare-feu bloquant `tile.openstreetmap.org`) → vérifier la connexion puis
+  recharger la page.
 - **FC max affichée très élevée (plus de 195) sur une sortie tranquille** → artefact du capteur
   optique au poignet → se fier à la « FC tenue 10 s » et aux courses pour renseigner le profil.
 - **« D+ du terrain indisponible pour N trace(s) »** dans le résumé d'import → pas de connexion
@@ -403,7 +409,8 @@ L'affichage suit le thème clair ou sombre du système.
 **Consulter les temps de passage d'une sortie**
 
 1. Ouvrir [https://mystrava.ddev.site/activites](https://mystrava.ddev.site/activites).
-2. Cliquer sur le nom de l'activité : les kilomètres et les tours s'affichent.
+2. Cliquer sur le nom de l'activité : la carte du parcours, les kilomètres et les tours s'affichent.
+
 
 **Retrouver une sortie**
 

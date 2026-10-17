@@ -121,6 +121,41 @@ final class WebDashboardTest extends WebTestCase
         self::assertSelectorCount(4, '.split-table tbody tr');
         self::assertSelectorTextContains('.split-table tbody tr:nth-child(2)', 'rapide');
         self::assertSelectorTextContains('.split-table tbody tr:nth-child(2)', '4:10/km');
+        self::assertSelectorNotExists('[data-route-map]', 'Pas de carte sans positions GPS');
+    }
+
+    public function testActivityDetailShowsTheRouteMap(): void
+    {
+        // 1 km plein nord : 500 m à 4:00/km puis 500 m à 6:00/km.
+        $points = '';
+        $time = 1767600000;
+        for ($d = 0; $d <= 1000; $d += 10) {
+            $points .= \sprintf('<trkpt lat="%.7f" lon="-4.0"><time>%s</time></trkpt>', 48 + $d / 111195, gmdate('Y-m-d\TH:i:s\Z', (int) round($time)));
+            $time += $d < 500 ? 2.4 : 3.6;
+        }
+        (new Filesystem())->mkdir($this->workDir);
+        $path = $this->workDir.'/carte.gpx';
+        file_put_contents($path, '<?xml version="1.0"?><gpx version="1.1" xmlns="http://www.topografix.com/GPX/1/1"><trk><name>Footing carte</name><type>running</type><trkseg>'.$points.'</trkseg></trk></gpx>');
+
+        $crawler = $this->client->request('GET', '/import');
+        $form = $crawler->selectButton('Importer')->form();
+        $this->fileField($form)->upload($path);
+        $this->client->submit($form);
+
+        // Le fichier envoyé est renommé : on ouvre l'activité depuis la liste.
+        $crawler = $this->client->request('GET', '/activites');
+        $crawler = $this->client->click($crawler->selectLink('Footing carte')->link());
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('#route-map-title', 'Parcours');
+        /** @var array{segments: list<array{class: string, label: string}>, bounds: list<list<float>>} $route */
+        $route = json_decode((string) $crawler->filter('[data-route-map]')->attr('data-route-map'), true, flags: \JSON_THROW_ON_ERROR);
+        // Tronçons de 100 m ; le dernier, raccourci par l'arrondi de la distance GPS, rejoint le précédent.
+        self::assertCount(9, $route['segments']);
+        self::assertSame('pace-1', $route['segments'][0]['class']);
+        // Deux allures seulement : les tronçons ex æquo partagent la même classe.
+        self::assertGreaterThan('pace-1', $route['segments'][8]['class']);
+        self::assertStringEndsWith('/km', $route['segments'][8]['label']);
+        self::assertSelectorTextContains('.route-legend li:first-child', '/km');
     }
 
     public function testUnsupportedFileIsRejected(): void
