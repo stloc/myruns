@@ -17,6 +17,8 @@ final readonly class ActivitySearch
     /** Valeur du filtre de type regroupant route, trail et course virtuelle. */
     public const ALL_RUNS = 'course';
 
+    public \SortDirection $direction;
+
     /**
      * @param list<string> $words mots à trouver tous dans le nom
      */
@@ -30,7 +32,9 @@ final readonly class ActivitySearch
         public ?float $maxKm = null,
         public ?float $minElevation = null,
         public ActivitySort $sort = ActivitySort::Date,
+        ?\SortDirection $direction = null,
     ) {
+        $this->direction = $direction ?? $sort->defaultDirection();
     }
 
     /**
@@ -52,6 +56,11 @@ final readonly class ActivitySearch
             maxKm: self::positive($get('km_max')),
             minElevation: self::positive($get('dplus_min')),
             sort: ActivitySort::tryFrom($get('tri')) ?? ActivitySort::Date,
+            direction: match ($get('ordre')) {
+                'asc' => \SortDirection::Ascending,
+                'desc' => \SortDirection::Descending,
+                default => null,
+            },
         );
     }
 
@@ -77,7 +86,13 @@ final readonly class ActivitySearch
             'km_max' => self::number($this->maxKm),
             'dplus_min' => self::number($this->minElevation),
             'tri' => ActivitySort::Date === $this->sort ? '' : $this->sort->value,
+            'ordre' => $this->sort->defaultDirection() === $this->direction ? '' : self::directionValue($this->direction),
         ], static fn (string $value): bool => '' !== $value);
+    }
+
+    private static function directionValue(\SortDirection $direction): string
+    {
+        return \SortDirection::Ascending === $direction ? 'asc' : 'desc';
     }
 
     private static function date(string $value, \DateTimeZone $timezone): ?\DateTimeImmutable

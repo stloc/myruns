@@ -99,7 +99,7 @@
                 <h2>Dernières activités</h2>
                 <a href="{{ path('activity_index') }}">Toutes les activités ({{ activity_count }})</a>
             </div>
-            {{ include('activity/_table.html.twig', {activities: latest_activities}, with_context = false) }}
+            {{ include('activity/_table.html.twig', {activities: latest_activities, with_splits: with_splits}, with_context = false) }}
         </section>
     {% endif %}
 {% endblock %}

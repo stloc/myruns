@@ -6,6 +6,7 @@ namespace App\Repository;
 
 use App\Doctrine\UtcDateTimeImmutableType;
 use App\Entity\Activity;
+use App\Entity\ActivitySplit;
 use App\Enum\ActivitySort;
 use App\Enum\Sport;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
@@ -52,15 +53,21 @@ final class ActivityRepository extends ServiceEntityRepository
             ->setFirstResult($offset)
             ->setMaxResults($limit);
 
+        $direction = $search->direction;
         match ($search->sort) {
-            ActivitySort::Date => $qb->orderBy('a.startDate', \SortDirection::Descending),
-            ActivitySort::Distance => $qb->orderBy('a.distanceMeters', \SortDirection::Descending),
-            ActivitySort::Duration => $qb->orderBy('a.movingTimeSeconds', \SortDirection::Descending),
-            ActivitySort::Elevation => $qb->addSelect('COALESCE(a.groundElevationGain, a.elevationGain, 0) AS HIDDEN elevation')
-                ->orderBy('elevation', \SortDirection::Descending),
+            ActivitySort::Date => $qb->orderBy('a.startDate', $direction),
+            ActivitySort::Distance => $qb->orderBy('a.distanceMeters', $direction),
+            ActivitySort::Duration => $qb->orderBy('a.movingTimeSeconds', $direction),
+            // Les activités sans D+ connu passent en dernier, quel que soit le sens.
+            ActivitySort::Elevation => $qb->addSelect('CASE WHEN COALESCE(a.groundElevationGain, a.elevationGain) IS NULL THEN 1 ELSE 0 END AS HIDDEN no_elevation')
+                ->addSelect('COALESCE(a.groundElevationGain, a.elevationGain) AS HIDDEN elevation')
+                ->orderBy('no_elevation', \SortDirection::Ascending)
+                ->addOrderBy('elevation', $direction),
             // Les activités sans distance (renforcement, piscine sans longueurs) passent en dernier.
-            ActivitySort::Pace => $qb->addSelect('CASE WHEN a.distanceMeters > 0 THEN a.movingTimeSeconds / a.distanceMeters ELSE 1000000 END AS HIDDEN pace')
-                ->orderBy('pace', \SortDirection::Ascending),
+            ActivitySort::Pace => $qb->addSelect('CASE WHEN a.distanceMeters > 0 THEN 0 ELSE 1 END AS HIDDEN no_distance')
+                ->addSelect('CASE WHEN a.distanceMeters > 0 THEN a.movingTimeSeconds / a.distanceMeters ELSE 0 END AS HIDDEN pace')
+                ->orderBy('no_distance', \SortDirection::Ascending)
+                ->addOrderBy('pace', $direction),
         };
         if (ActivitySort::Date !== $search->sort) {
             $qb->addOrderBy('a.startDate', \SortDirection::Descending);
@@ -108,6 +115,37 @@ final class ActivityRepository extends ServiceEntityRepository
         }
 
         return $qb;
+    }
+
+    /**
+     * Activités de la liste qui ont des temps de passage, en une requête (évite de charger chaque collection).
+     *
+     * @param list<Activity> $activities
+     *
+     * @return array<string, true> identifiant => true
+     */
+    public function idsWithSplits(array $activities): array
+    {
+        if ([] === $activities) {
+            return [];
+        }
+
+        $ids = $this->getEntityManager()->createQueryBuilder()
+            ->select('DISTINCT IDENTITY(s.activity)')
+            ->from(ActivitySplit::class, 's')
+            ->andWhere('s.activity IN (:activities)')
+            ->setParameter('activities', $activities)
+            ->getQuery()
+            ->getSingleColumnResult();
+
+        $withSplits = [];
+        foreach ($ids as $id) {
+            if (\is_string($id)) {
+                $withSplits[$id] = true;
+            }
+        }
+
+        return $withSplits;
     }
 
     public function findMostRecent(): ?Activity

@@ -84,6 +84,14 @@ document.querySelectorAll('[data-import-job]').forEach((job) => {
     step();
 });
 
+// Recherche d'activités : changer de critère de tri remet son sens habituel (allure : la plus rapide d'abord).
+document.querySelectorAll('select[name="tri"]').forEach((sort) => {
+    const direction = sort.form.querySelector('select[name="ordre"]');
+    sort.addEventListener('change', () => {
+        direction.value = sort.selectedOptions[0].dataset.direction;
+    });
+});
+
 // Carte de la trace (page détail d'une activité) : Leaflet n'est chargé que sur cette page.
 document.querySelectorAll('[data-route-map]').forEach((element) => {
     import('./route_map.js').then(({ drawRouteMap }) => drawRouteMap(element));

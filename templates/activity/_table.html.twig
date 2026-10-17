@@ -21,7 +21,7 @@
                     <tr>
                         <td>{{ activity.startDate|date('d/m/Y H:i') }}</td>
                         <td>{{ activity.sport.label }}</td>
-                        <td><a href="{{ path('activity_show', {id: activity.id}) }}">{{ activity.name ?: activity.sport.label }}</a>{% if activity.hasSplits %} <span class="muted" title="Temps de passage disponibles">⏱</span>{% endif %}</td>
+                        <td><a href="{{ path('activity_show', {id: activity.id}) }}">{{ activity.name ?: activity.sport.label }}</a>{% if with_splits[activity.id] is defined %} <span class="muted" title="Temps de passage disponibles">⏱</span>{% endif %}</td>
                         <td>{{ activity.city ?? '–' }}</td>
                         <td class="num">{{ activity.distanceMeters|distance }}</td>
                         <td class="num">{{ activity.movingTimeSeconds|duration }}</td>

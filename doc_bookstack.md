@@ -471,7 +471,8 @@ L'affichage suit le thème clair ou sombre du système.
 2. Saisir un ou plusieurs mots du nom ou de la ville (« cani », « club », « Brest »…), et/ou choisir un type, une période,
    une distance ou un D+ minimal.
 3. **Rechercher**. Changer « Trier par » pour voir par exemple les sorties avec le plus de
-   dénivelé ; **Effacer** revient à la liste complète.
+   dénivelé, et « Ordre » pour inverser le sens (les plus anciennes, les plus courtes…). Le
+   sens se règle tout seul en changeant de critère (allure : la plus rapide d'abord) ; **Effacer** revient à la liste complète.
 
 **Affiner les prédictions avec son profil**
 

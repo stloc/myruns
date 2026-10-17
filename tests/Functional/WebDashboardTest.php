@@ -75,6 +75,15 @@ final class WebDashboardTest extends WebTestCase
         $this->client->request('GET', '/activites?tri=allure');
         self::assertSelectorTextContains('tbody tr:first-child', 'Séance seuil');
         self::assertSelectorExists('select[name="tri"] option[value="allure"][selected]');
+        self::assertSelectorExists('select[name="ordre"] option[value="asc"][selected]');
+
+        // Même critère, sens inversé : la séance seuil passe en dernier parmi les courses.
+        $this->client->request('GET', '/activites?tri=allure&ordre=desc');
+        self::assertSelectorTextNotContains('tbody tr:first-child', 'Séance seuil');
+        self::assertSelectorExists('select[name="ordre"] option[value="desc"][selected]');
+
+        $this->client->request('GET', '/activites?ordre=asc');
+        self::assertSelectorTextContains('.search-actions', 'Effacer');
 
         $this->client->request('GET', '/activites?q=s%C3%A9ance&sport=trail_run');
         self::assertSelectorTextContains('h1', '(0)');
@@ -114,6 +123,9 @@ final class WebDashboardTest extends WebTestCase
         $this->client->submit($form);
         $this->client->followRedirect();
         self::assertSelectorTextContains('.alert-success', '1 temps de passage calculé(s)');
+
+        $this->client->request('GET', '/activites');
+        self::assertSelectorExists('tbody tr [title="Temps de passage disponibles"]');
 
         $this->client->request('GET', '/activites/777');
         self::assertResponseIsSuccessful();

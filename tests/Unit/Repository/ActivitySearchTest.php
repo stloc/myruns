@@ -37,6 +37,19 @@ final class ActivitySearchTest extends TestCase
         self::assertSame([], $search->toQuery());
     }
 
+    public function testSortDirectionDefaultsToTheUsualOrderOfTheCriterion(): void
+    {
+        self::assertSame(\SortDirection::Descending, ActivitySearch::fromQuery([])->direction, 'Plus récentes d\'abord');
+        self::assertSame(\SortDirection::Ascending, ActivitySearch::fromQuery(['tri' => 'allure', 'ordre' => 'n-importe'])->direction, 'Plus rapides d\'abord');
+
+        $search = ActivitySearch::fromQuery(['tri' => 'allure', 'ordre' => 'desc']);
+        self::assertSame(\SortDirection::Descending, $search->direction);
+        self::assertSame(['tri' => 'allure', 'ordre' => 'desc'], $search->toQuery());
+
+        self::assertSame(['ordre' => 'asc'], ActivitySearch::fromQuery(['ordre' => 'asc'])->toQuery());
+        self::assertSame([], ActivitySearch::fromQuery(['ordre' => 'desc'])->toQuery(), 'Sens habituel : omis de l\'adresse');
+    }
+
     public function testTrailIsRecognisedByName(): void
     {
         self::assertSame(Sport::TrailRun, Sport::Run->refinedByName('Trail le matin'));

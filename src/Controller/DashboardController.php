@@ -20,11 +20,13 @@ final class DashboardController extends AbstractController
     public function index(ActivityRepository $activities, FitnessAnalyzer $analyzer, PlanReviewer $reviewer): Response
     {
         $weekly = $activities->weeklyRunningKm(self::CHART_WEEKS);
+        $latest = $activities->findLatest(8);
 
         return $this->render('dashboard/index.html.twig', [
             'fitness' => $analyzer->analyze(),
             'activity_count' => $activities->count(),
-            'latest_activities' => $activities->findLatest(8),
+            'latest_activities' => $latest,
+            'with_splits' => $activities->idsWithSplits($latest),
             'weekly_km' => $weekly,
             'chart' => ColumnChart::fromSeries($weekly),
             'last_session' => $reviewer->review()?->latestDone(),

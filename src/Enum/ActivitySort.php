@@ -18,11 +18,20 @@ enum ActivitySort: string
     public function label(): string
     {
         return match ($this) {
-            self::Date => 'Plus récentes',
-            self::Distance => 'Plus longues',
-            self::Duration => 'Plus longues en durée',
-            self::Elevation => 'Plus de dénivelé',
-            self::Pace => 'Allure la plus rapide',
+            self::Date => 'Date',
+            self::Distance => 'Distance',
+            self::Duration => 'Durée',
+            self::Elevation => 'Dénivelé',
+            self::Pace => 'Allure',
         };
+    }
+
+    /**
+     * Sens proposé quand aucun n'est demandé : la valeur la plus forte d'abord, sauf l'allure
+     * (secondes par km : la plus rapide est la plus petite).
+     */
+    public function defaultDirection(): \SortDirection
+    {
+        return self::Pace === $this ? \SortDirection::Ascending : \SortDirection::Descending;
     }
 }

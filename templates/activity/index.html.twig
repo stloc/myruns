@@ -47,13 +47,20 @@
                 <label for="tri">Trier par</label>
                 <select id="tri" name="tri">
                     {% for sort in sorts %}
-                        <option value="{{ sort.value }}" {% if sort == search.sort %}selected{% endif %}>{{ sort.label }}</option>
+                        <option value="{{ sort.value }}" data-direction="{{ sort.defaultDirection.name == 'Ascending' ? 'asc' : 'desc' }}" {% if sort == search.sort %}selected{% endif %}>{{ sort.label }}</option>
                     {% endfor %}
+                </select>
+            </div>
+            <div class="search-field">
+                <label for="ordre">Ordre</label>
+                <select id="ordre" name="ordre">
+                    <option value="desc" {% if search.direction.name == 'Descending' %}selected{% endif %}>Décroissant ↓</option>
+                    <option value="asc" {% if search.direction.name == 'Ascending' %}selected{% endif %}>Croissant ↑</option>
                 </select>
             </div>
             <div class="search-actions">
                 <button type="submit" class="button">Rechercher</button>
-                {% if search.filtered or search.sort.value != 'date' %}
+                {% if search.toQuery is not empty %}
                     <a href="{{ path('activity_index') }}">Effacer</a>
                 {% endif %}
             </div>
@@ -64,7 +71,7 @@
         {% if activities is empty and search.filtered %}
             <p class="muted">Aucune activité ne correspond à ces critères.</p>
         {% else %}
-            {{ include('activity/_table.html.twig', {activities: activities}, with_context = false) }}
+            {{ include('activity/_table.html.twig', {activities: activities, with_splits: with_splits}, with_context = false) }}
         {% endif %}
 
         {% if page_count > 1 %}

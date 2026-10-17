@@ -31,9 +31,11 @@ final class ActivityController extends AbstractController
     ): Response {
         $search = ActivitySearch::fromQuery($request->query->all());
         $total = $activities->countMatching($search);
+        $results = $activities->search($search, self::PER_PAGE, ($page - 1) * self::PER_PAGE);
 
         return $this->render('activity/index.html.twig', [
-            'activities' => $activities->search($search, self::PER_PAGE, ($page - 1) * self::PER_PAGE),
+            'activities' => $results,
+            'with_splits' => $activities->idsWithSplits($results),
             'search' => $search,
             'sports' => Sport::cases(),
             'sorts' => ActivitySort::cases(),
