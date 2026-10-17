@@ -1,0 +1,30 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Import en cours{% endblock %}
+
+{% block body %}
+    <div class="page-heading">
+        <h1>Import en cours</h1>
+    </div>
+
+    <section class="card" data-import-job>
+        <p>Les activités sont importées. Lecture des traces : temps de passage, relief du terrain et ville (service de l'IGN). La première fois, comptez une à quelques secondes par trace.</p>
+
+        <div class="meter" role="progressbar" aria-labelledby="import-progress" aria-valuemin="0" aria-valuemax="{{ job.total }}" aria-valuenow="{{ job.done }}">
+            <div class="meter-fill" data-import-fill style="--meter-value: {{ job.percent }}%"></div>
+        </div>
+        <p id="import-progress" class="import-progress" data-import-label aria-live="polite">{{ job.done }} / {{ job.total }} traces ({{ job.percent }} %)</p>
+        <p class="muted" data-import-status>Vous pouvez quitter cette page : l'import se reprend depuis la page Import, sans renvoyer le fichier.</p>
+
+        <div class="form-actions">
+            <form method="post" action="{{ path('import_job_continue', {id: job.id}) }}" data-import-continue>
+                <input type="hidden" name="_token" value="{{ csrf_token('import_job') }}">
+                <button type="submit" class="button">Continuer</button>
+            </form>
+            <form method="post" action="{{ path('import_job_abandon', {id: job.id}) }}" data-import-abandon>
+                <input type="hidden" name="_token" value="{{ csrf_token('import_job') }}">
+                <button type="submit" class="button button-secondary">Arrêter</button>
+            </form>
+        </div>
+    </section>
+{% endblock %}

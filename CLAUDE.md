@@ -41,6 +41,12 @@ tournent aussi sur l'hôte. `ddev start` ne demande `sudo` qu'au tout premier d�
   (dossier de données, hors `cache:clear`) ; ancien format IGN (`null` = trace hors zone) encore lu.
   En test, tout client HTTP du conteneur répond 503 (`tests/Double/NoNetworkResponseFactory`) :
   les tests du D+ construisent `IgnAltimetry` / `OpenMeteoElevation` avec leur `MockHttpClient`.
+- Import web **par étapes** (`ImportJobs`, état JSON + archive dans `<données>/uploads/`) :
+  `ActivityImporter::begin()` (CSV) puis `continue()` depuis une position, jusqu'à une échéance
+  (`app.import_step_seconds`, 3 s ; 0 en test = une trace par étape) ; l'ordre des traces doit rester
+  stable (position = reprise). Page `/import/{id}` pilotée par `fetch` (`assets/app.js`), bouton
+  « Continuer » sans JS. Services publics (IGN, Open-Meteo, Nominatim) derrière `App\Http\NetworkGuard` :
+  plus d'appel après 3 échecs de suite, budget réseau en web, intervalle minimal entre appels.
 - Ville : commune du 1er point GPS (`src/Geocoding/CityFinder` : `IgnReverseGeocoder`, index
   `parcel`, puis `NominatimReverseGeocoder` hors de France — 1 appel/s et User-Agent imposés par
   la charte OSM, client `nominatim.client`), cache persistant `app.place_cache` par position arrondie à 3 décimales ;

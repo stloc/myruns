@@ -192,6 +192,7 @@ code { font-size: 0.9em; overflow-wrap: anywhere; }
 .probability-label { color: var(--text-secondary); font-size: 0.9rem; }
 .meter { height: 10px; border-radius: 5px; background: var(--meter-track); overflow: hidden; margin-top: 0.4rem; }
 .meter-fill { height: 100%; width: var(--meter-value); background: var(--chart-series); border-radius: 5px; }
+.import-progress { margin: 0.5rem 0 0; font-weight: 600; font-variant-numeric: tabular-nums; }
 .key-values { display: grid; grid-template-columns: max-content 1fr; gap: 0.35rem 1rem; margin: 0 0 1rem; }
 .key-values dt { color: var(--text-secondary); }
 .key-values dd { margin: 0; font-variant-numeric: tabular-nums; }

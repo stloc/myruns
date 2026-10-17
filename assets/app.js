@@ -41,6 +41,49 @@ document.querySelectorAll('form[data-loading-form]').forEach((form) => {
     });
 });
 
+// Import long (archive complète) : enchaîne les étapes côté serveur et affiche l'avancement.
+document.querySelectorAll('[data-import-job]').forEach((job) => {
+    const form = job.querySelector('form[data-import-continue]');
+    const button = form.querySelector('button');
+    const fill = job.querySelector('[data-import-fill]');
+    const label = job.querySelector('[data-import-label]');
+    const status = job.querySelector('[data-import-status]');
+    let stopped = false;
+
+    const step = async () => {
+        button.disabled = true;
+        button.textContent = 'Import en cours…';
+        try {
+            const response = await fetch(form.action, { method: 'POST', body: new FormData(form), headers: { Accept: 'application/json' } });
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            const state = await response.json();
+            if (state.redirect) {
+                window.location.assign(state.redirect);
+                return;
+            }
+            fill.style.setProperty('--meter-value', `${state.percent}%`);
+            fill.parentElement.setAttribute('aria-valuenow', state.done);
+            label.textContent = `${state.done} / ${state.total} traces (${state.percent} %)`;
+            if (!stopped) {
+                step();
+            }
+        } catch {
+            button.disabled = false;
+            button.textContent = 'Reprendre';
+            status.textContent = 'L\'import s\'est interrompu (connexion ou serveur). Les traces déjà lues sont enregistrées : « Reprendre » continue là où il s\'est arrêté.';
+        }
+    };
+
+    form.addEventListener('submit', (event) => {
+        event.preventDefault();
+        step();
+    });
+    job.querySelector('form[data-import-abandon]').addEventListener('submit', () => { stopped = true; });
+    step();
+});
+
 // Carte de la trace (page détail d'une activité) : Leaflet n'est chargé que sur cette page.
 document.querySelectorAll('[data-route-map]').forEach((element) => {
     import('./route_map.js').then(({ drawRouteMap }) => drawRouteMap(element));

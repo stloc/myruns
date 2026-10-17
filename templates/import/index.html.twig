@@ -7,6 +7,14 @@
         <h1>Importer des activités</h1>
     </div>
 
+    {% for job in pending_jobs %}
+        <section class="card">
+            <h2>Import inachevé</h2>
+            <p>Commencé le {{ job.startedAt|date('d/m/Y à H:i') }} : {{ job.done }} trace(s) lue(s) sur {{ job.total }}. Les activités sont déjà importées ; il reste à lire les traces (temps de passage, relief, ville).</p>
+            <a class="button" href="{{ path('import_job', {id: job.id}) }}">Reprendre</a>
+        </section>
+    {% endfor %}
+
     <section class="card">
         <h2>Nouvelles séances (intervals.icu)</h2>
         {% if intervals_configured %}
@@ -31,18 +39,17 @@
             {{ form_end(form) }}
         </section>
 
-        <section class="card">
-            <h2>Dossier surveillé</h2>
-            {% if default_path %}
-                <p>Importe le dossier ou l'archive configuré dans <code>STRAVA_EXPORT_PATH</code> : <code>{{ default_path }}</code></p>
+        {# Installation de développement seulement : l'app de bureau ne configure aucun dossier. #}
+        {% if default_path %}
+            <section class="card">
+                <h2>Fichiers déjà sur ce poste</h2>
+                <p>Archive de plus de 1 Go, dossier décompressé ou alimenté par un outil : lu sur place, sans envoi. Dossier configuré dans <code>STRAVA_EXPORT_PATH</code> : <code>{{ default_path }}</code></p>
                 <form method="post" action="{{ path('import_folder') }}" data-loading-form>
                     <input type="hidden" name="_token" value="{{ csrf_token('import_folder') }}">
                     <button type="submit" class="button button-secondary" data-loading-label="Import en cours…">Importer le dossier</button>
                 </form>
-            {% else %}
-                <p class="muted">Aucun dossier configuré : utilisez « Envoyer un fichier ». (Installation de développement : <code>STRAVA_EXPORT_PATH</code> dans <code>.env.local</code>.)</p>
-            {% endif %}
-        </section>
+            </section>
+        {% endif %}
     </div>
 
     <section class="card">

@@ -67,12 +67,23 @@ sources différentes (départ à ±1 minute) ; deux lignes du CSV ne sont jamais
    interdit d'utiliser ses données avec une IA.
 
 Import depuis le dashboard (page *Import* : synchro intervals.icu, envoi d'un fichier, ou bouton
-« Importer le dossier ») ou en ligne de commande :
+« Importer le dossier », affiché seulement si `STRAVA_EXPORT_PATH` est renseigné : jamais dans
+l'app de bureau) ou en ligne de commande :
 
 ```bash
 ddev exec bin/console app:import imports/export_12345678.zip
 ddev exec bin/console app:import            # dossier STRAVA_EXPORT_PATH (défaut : imports/)
 ```
+
+La première lecture d'une archive complète est longue (une à quelques secondes par trace à cause
+des appels IGN, soit 10 à 25 minutes pour 600 traces ; les réimports sont quasi instantanés grâce
+au cache). Depuis la page web, l'import avance donc **par étapes** (`src/Import/ImportJobs.php`) :
+la requête d'envoi importe le CSV (toutes les activités apparaissent) puis lit les traces pendant
+3 s (`app.import_step_seconds`) ; s'il en reste, la page d'avancement `/import/{id}` enchaîne
+des étapes de 3 s en `fetch` (barre de progression, bouton « Arrêter »). L'état de l'import et l'archive
+envoyée restent dans `<données>/uploads/` jusqu'à la fin : un import interrompu (page fermée,
+coupure) se reprend depuis la page *Import* sans renvoyer le fichier ; abandonné plus de 7 jours,
+il est effacé. `app:import` affiche une barre de progression et enregistre en base toutes les 30 s.
 
 Pendant l'import, chaque trace GPS reçoit :
 

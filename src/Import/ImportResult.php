@@ -30,4 +30,43 @@ final class ImportResult
 
         return [] === $this->errors ? $summary : $summary.\sprintf(', %d erreur(s)', \count($this->errors));
     }
+
+    /**
+     * Compteurs gardés entre les étapes d'un import web (voir ImportJob).
+     *
+     * @return array<string, int|list<string>>
+     */
+    public function toArray(): array
+    {
+        return [
+            'created' => $this->created,
+            'updated' => $this->updated,
+            'unchanged' => $this->unchanged,
+            'ignored' => $this->ignored,
+            'withSplits' => $this->withSplits,
+            'groundElevation' => $this->groundElevation,
+            'groundElevationMissing' => $this->groundElevationMissing,
+            'errors' => $this->errors,
+        ];
+    }
+
+    /**
+     * @param array<mixed> $data
+     */
+    public static function fromArray(array $data): self
+    {
+        $int = static fn (string $key): int => \is_int($data[$key] ?? null) ? $data[$key] : 0;
+        $result = new self();
+        $result->created = $int('created');
+        $result->updated = $int('updated');
+        $result->unchanged = $int('unchanged');
+        $result->ignored = $int('ignored');
+        $result->withSplits = $int('withSplits');
+        $result->groundElevation = $int('groundElevation');
+        $result->groundElevationMissing = $int('groundElevationMissing');
+        $errors = \is_array($data['errors'] ?? null) ? $data['errors'] : [];
+        $result->errors = array_values(array_filter($errors, is_string(...)));
+
+        return $result;
+    }
 }

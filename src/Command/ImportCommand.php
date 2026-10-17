@@ -49,8 +49,19 @@ final class ImportCommand extends Command
             return Command::INVALID;
         }
 
+        $progress = null;
         try {
-            $result = $this->importer->import($path);
+            $result = $this->importer->import($path, static function (int $done, int $total) use ($io, &$progress): void {
+                if (null === $progress) {
+                    $io->text('Lecture des traces (relief et ville via l\'IGN : quelques secondes par trace la première fois)…');
+                    $progress = $io->createProgressBar($total);
+                }
+                $progress->setProgress($done);
+            });
+            if (null !== $progress) {
+                $progress->finish();
+                $io->newLine(2);
+            }
         } catch (\InvalidArgumentException|\RuntimeException $e) {
             $io->error($e->getMessage());
 

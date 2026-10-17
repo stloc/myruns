@@ -11,6 +11,9 @@ parameters:
     # de bureau (MYRUNS_DATA_DIR), sinon var/ du projet.
     app.default_data_dir: '%kernel.project_dir%/var'
     app.data_dir: '%env(default:app.default_data_dir:MYRUNS_DATA_DIR)%'
+    # Durée d'une étape d'import web : courte, pour que la barre d'avancement bouge souvent
+    # (la page enchaîne les étapes ; chacune relit l'index des activités, coût négligeable).
+    app.import_step_seconds: 3.0
 
 services:
     # default configuration for services in *this* file
@@ -38,6 +41,8 @@ when@test:
     parameters:
         # Jamais les réglages du poste de développement pendant les tests.
         app.default_data_dir: '%kernel.project_dir%/var/test-data'
+        # Une trace par étape : les tests parcourent les étapes de l'import web.
+        app.import_step_seconds: 0.0
 
     services:
         # Jamais d'appel réel à l'API IA pendant les tests.

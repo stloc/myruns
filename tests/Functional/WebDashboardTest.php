@@ -158,6 +158,15 @@ final class WebDashboardTest extends WebTestCase
         self::assertSelectorTextContains('.route-legend li:first-child', '/km');
     }
 
+    public function testFolderImportIsHiddenWithoutConfiguredFolder(): void
+    {
+        // STRAVA_EXPORT_PATH vide (comme dans l'app de bureau) : seul l'envoi de fichier est proposé.
+        $this->client->request('GET', '/import');
+
+        self::assertSelectorTextContains('main', 'Envoyer un fichier');
+        self::assertSelectorTextNotContains('main', 'Importer le dossier');
+    }
+
     public function testUnsupportedFileIsRejected(): void
     {
         $crawler = $this->client->request('GET', '/import');
@@ -285,13 +294,85 @@ final class WebDashboardTest extends WebTestCase
         self::assertSame(0, static::getContainer()->get(TrainingWeekOverrideRepository::class)->count([]));
     }
 
-    private function uploadExport(): void
+    public function testLongImportAdvancesStepByStep(): void
+    {
+        // En test, une trace par étape (app.import_step_seconds = 0).
+        $this->uploadExport(tracks: 3);
+
+        // 1ʳᵉ étape dans la requête d'envoi : CSV + 1ʳᵉ trace, puis page d'avancement.
+        $location = (string) $this->client->getResponse()->headers->get('Location');
+        self::assertMatchesRegularExpression('#^/import/[0-9a-f]{16}$#', $location);
+        $crawler = $this->client->followRedirect();
+        self::assertSelectorTextContains('[data-import-label]', '1 / 3 traces (33 %)');
+
+        $this->client->request('GET', '/import');
+        self::assertSelectorTextContains('body', 'Import inachevé');
+        self::assertSelectorTextContains('body', '1 trace(s) lue(s) sur 3');
+
+        // Étape demandée par la page (fetch) : avancement en JSON.
+        $continue = $crawler->selectButton('Continuer')->form();
+        $this->client->submit($continue, [], ['HTTP_ACCEPT' => 'application/json']);
+        self::assertResponseIsSuccessful();
+        self::assertSame(['done' => 2, 'total' => 3, 'percent' => 66], json_decode((string) $this->client->getResponse()->getContent(), true));
+
+        // Sans JavaScript (bouton « Continuer ») : dernière trace, retour à la page Import.
+        $this->client->submit($continue);
+        self::assertResponseRedirects('/import');
+        $this->client->followRedirect();
+        self::assertSelectorTextContains('.alert-success', 'Import terminé : 39 nouvelle(s)');
+        self::assertSelectorTextNotContains('body', 'Import inachevé');
+        self::assertFileDoesNotExist($this->uploadDir().'/'.basename($location).'.zip', 'Archive supprimée une fois l\'import terminé');
+
+        // Page d'un import terminé (rechargement, autre onglet) : retour à la page Import.
+        $this->client->request('GET', $location);
+        self::assertResponseRedirects('/import');
+        $this->client->submit($continue, [], ['HTTP_ACCEPT' => 'application/json']);
+        self::assertSame(['redirect' => '/import'], json_decode((string) $this->client->getResponse()->getContent(), true));
+    }
+
+    public function testAbandonedImportKeepsImportedActivities(): void
+    {
+        $this->uploadExport(tracks: 2);
+        $location = (string) $this->client->getResponse()->headers->get('Location');
+        $crawler = $this->client->followRedirect();
+
+        $this->client->submit($crawler->selectButton('Arrêter')->form());
+        self::assertResponseRedirects('/import');
+        $this->client->followRedirect();
+        self::assertSelectorTextContains('.alert-warning', 'Import interrompu (1 trace(s) lue(s) sur 2)');
+        self::assertSelectorTextNotContains('body', 'Import inachevé');
+        self::assertFileDoesNotExist($this->uploadDir().'/'.basename($location).'.zip');
+
+        $this->client->request('GET', '/activites');
+        self::assertSelectorTextContains('h1', '(37)');
+    }
+
+    private function uploadDir(): string
+    {
+        $dataDir = static::getContainer()->getParameter('app.data_dir');
+        self::assertIsString($dataDir);
+
+        return $dataDir.'/uploads';
+    }
+
+    /**
+     * @param int $tracks traces GPX ajoutées à l'archive (sorties absentes du CSV)
+     */
+    private function uploadExport(int $tracks = 0): void
     {
         $csv = StravaExportFactory::create($this->workDir.'/export');
         $zipPath = $this->workDir.'/export_42.zip';
         $zip = new \ZipArchive();
         $zip->open($zipPath, \ZipArchive::CREATE);
         $zip->addFile($csv, 'activities.csv');
+        for ($i = 1; $i <= $tracks; ++$i) {
+            $points = '';
+            $start = (new \DateTimeImmutable('2020-01-01 08:00 UTC'))->modify(\sprintf('+%d days', $i))->getTimestamp();
+            for ($d = 0; $d <= 500; $d += 10) {
+                $points .= \sprintf('<trkpt lat="%.7f" lon="-4.0"><time>%s</time></trkpt>', 48 + $d / 111195, gmdate('Y-m-d\TH:i:s\Z', $start + intdiv(3 * $d, 10)));
+            }
+            $zip->addFromString(\sprintf('activities/trace%d.gpx', $i), '<?xml version="1.0"?><gpx version="1.1" xmlns="http://www.topografix.com/GPX/1/1"><trk><name>Trace '.$i.'</name><type>running</type><trkseg>'.$points.'</trkseg></trk></gpx>');
+        }
         $zip->close();
 
         $crawler = $this->client->request('GET', '/import');

@@ -154,6 +154,8 @@ le profil, les courses officielles et les ajustements du programme, non : sauveg
 1. L'utilisateur télécharge son archive Strava, ou laisse un outil tiers remplir un dossier de traces.
 2. L'import (page *Import* ou `app:import`) lit `activities.csv` et les traces `.fit`/`.gpx`/`.tcx`
    (y compris `.gz`) : temps de passage, FC tenue, D+ recalculé sur le terrain (IGN, Open-Meteo hors de France), ville du départ (IGN, OpenStreetMap hors de France) et trace simplifiée pour la carte.
+   Depuis la page web, une grosse archive s'importe par étapes : les activités apparaissent tout de suite,
+   puis une barre de progression suit la lecture des traces (jusqu'à une vingtaine de minutes pour 600 traces la première fois ; un réimport ne prend que quelques secondes et peut se terminer sans afficher la barre).
 3. Chaque activité est ajoutée ou mise à jour en base ; une sortie déjà connue n'est pas dupliquée.
 4. Pour un objectif, le calcul utilise les courses à pied des 12 dernières semaines.
 5. Sur demande, le résultat et l'historique sont envoyés au coach IA, qui renvoie un pourcentage
@@ -213,11 +215,13 @@ le profil, les courses officielles et les ajustements du programme, non : sauveg
 - **« Formats acceptés : archive Strava .zip, .gpx, .tcx (éventuellement .gz). »** → fichier
   envoyé non pris en charge → envoyer l'archive `export_XXXX.zip` ou une trace GPX/TCX.
 - **« Fichier trop volumineux »** → archive de plus de 1 Go → sur le poste de développement, la
-  décompresser dans `imports/` et utiliser « Importer le dossier » ; sinon transmettre au
-  développeur.
-- **« Aucun dossier configuré : renseignez STRAVA_EXPORT_PATH dans .env.local. »** → poste de
-  développement uniquement : renseigner la variable (par exemple `imports`). Dans l'application
-  Windows, utiliser « Envoyer un fichier ».
+  décompresser dans `imports/` et utiliser « Importer le dossier » (encart « Fichiers déjà sur ce
+  poste ») ; sinon transmettre au développeur.
+- **Pas d'encart « Fichiers déjà sur ce poste » sur la page Import** → comportement normal dans
+  l'application Windows (aucun dossier configuré) : utiliser « Envoyer un fichier ». Poste de
+  développement : renseigner `STRAVA_EXPORT_PATH` (par exemple `imports`).
+- **« Indiquez un chemin, ou renseignez STRAVA_EXPORT_PATH dans .env.local. »** (`app:import`) →
+  commande lancée sans chemin ni dossier configuré → passer le chemin de l'archive en argument.
 - **« … n'est ni une archive ZIP Strava, ni un dossier, ni un fichier GPX/TCX. »** → chemin
   erroné. Sous DDEV, seul le dossier du projet est visible : placer les fichiers dans `imports/`.
 - **« Colonne « … » introuvable dans activities.csv : export Strava non reconnu. »** → le CSV
@@ -264,6 +268,17 @@ le profil, les courses officielles et les ajustements du programme, non : sauveg
   internet, service d'altitude en panne, ou quota d'Open-Meteo atteint (premier import de
   nombreuses sorties à l'étranger) → relancer l'import quelques minutes plus tard : les traces déjà
   corrigées ne sont pas redemandées. En attendant, le D+ de la montre reste affiché.
+- **Page « Import en cours » avec une barre de progression** → comportement normal pour une
+  archive complète : la première lecture des traces prend une à quelques secondes chacune. Les
+  activités sont déjà visibles ; on peut quitter la page.
+- **« Import inachevé » sur la page Import** → page fermée ou import arrêté en cours de route →
+  cliquer sur **Reprendre** : l'import repart là où il s'était arrêté, sans renvoyer le fichier.
+  Un import inachevé depuis plus de 7 jours est effacé (relancer l'import de l'archive).
+- **« L'import s'est interrompu (connexion ou serveur)… »** sur la page d'avancement → coupure
+  réseau ou serveur redémarré → cliquer sur **Reprendre** ; si l'erreur revient, transmettre
+  au développeur le dossier `logs` des données (application Windows) ou la sortie de `ddev logs`.
+- **« Import interrompu (N trace(s) lue(s) sur M) »** → bouton **Arrêter** utilisé → les
+  activités déjà importées sont conservées ; relancer l'import de l'archive pour lire le reste.
 - **Le D+ diffère de celui de la montre ou de Strava** → comportement normal : le D+ est
   recalculé sur l'altitude du terrain (mention « altitude du terrain » sur le détail, avec la valeur
   enregistrée à côté : IGN en France, précision métrique ; modèle mondial à 90 m à l'étranger, moins
