@@ -1,0 +1,63 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ activity.name ?: 'Activité' }}{% endblock %}
+
+{% block body %}
+    <p class="breadcrumb"><a href="{{ path('activity_index') }}">← Activités</a></p>
+    <div class="page-heading">
+        <h1>{{ activity.name ?: activity.sport.label }}</h1>
+        <span class="muted">{{ activity.sport.label }} · {{ activity.startDate|date('d/m/Y à H:i') }}</span>
+    </div>
+
+    <section class="stat-grid" aria-label="Résumé">
+        <div class="stat-tile">
+            <span class="stat-label">Distance</span>
+            <span class="stat-value">{{ activity.distanceMeters|distance }}</span>
+        </div>
+        <div class="stat-tile">
+            <span class="stat-label">Temps de déplacement</span>
+            <span class="stat-value">{{ activity.movingTimeSeconds|duration }}</span>
+            <span class="stat-detail">temps total {{ activity.elapsedTimeSeconds|duration }}</span>
+        </div>
+        {% if activity.sport.isRunning %}
+            <div class="stat-tile">
+                <span class="stat-label">Allure moyenne</span>
+                <span class="stat-value">{{ activity.paceSecondsPerKm|pace }}</span>
+            </div>
+        {% endif %}
+        <div class="stat-tile">
+            <span class="stat-label">Fréquence cardiaque</span>
+            <span class="stat-value">{{ activity.averageHeartRate is not null ? activity.averageHeartRate|number_format(0) ~ ' bpm' : '–' }}</span>
+            <span class="stat-detail">
+                max {{ activity.maxHeartRate is not null ? activity.maxHeartRate|number_format(0) : '–' }}
+                {%- if activity.sustainedMaxHeartRate is not null %} · tenue 10 s {{ activity.sustainedMaxHeartRate }}{% endif %}
+            </span>
+        </div>
+        <div class="stat-tile">
+            <span class="stat-label">Dénivelé positif</span>
+            <span class="stat-value">{{ activity.elevationGain is not null ? activity.elevationGain|number_format(0, ',', ' ') ~ ' m' : '–' }}</span>
+        </div>
+    </section>
+
+    {% if laps %}
+        <section class="card">
+            <h2>Tours de la montre</h2>
+            <p class="card-subtitle">Tours enregistrés pendant la séance (touche Lap ou séance programmée).</p>
+            {{ include('activity/_split_table.html.twig', {table: laps, label: 'Tour'}, with_context = false) }}
+        </section>
+    {% endif %}
+
+    <section class="card">
+        <h2>Temps de passage au kilomètre</h2>
+        {% if kilometers.rows is empty %}
+            <p class="muted">Pas de trace GPS ou de capteur de distance pour cette activité : importez l'archive Strava complète (fichiers .fit / .gpx) pour obtenir les temps de passage.</p>
+        {% else %}
+            <p class="card-subtitle">
+                Temps de déplacement (arrêts exclus).
+                {%- if kilometers.rows|filter(r => r.fast)|length > 0 %} Les kilomètres <span class="badge">rapide</span> sont au moins 8 % plus rapides que l'allure médiane.{% endif %}
+                {%- if automatic_laps %} Les tours de la montre correspondent à ces kilomètres.{% endif %}
+            </p>
+            {{ include('activity/_split_table.html.twig', {table: kilometers, label: 'Km'}, with_context = false) }}
+        {% endif %}
+    </section>
+{% endblock %}

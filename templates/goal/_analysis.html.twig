@@ -1,0 +1,24 @@
+<section class="card analysis">
+    <h2>Analyse du coach IA</h2>
+    <div class="analysis-header">
+        {{ include('goal/_probability.html.twig', {percent: analysis.probabilityPercent, label: 'de chances selon le coach IA'}, with_context = false) }}
+        <div>
+            <p class="verdict">{{ analysis.verdict }}</p>
+            <p>Temps prédit par le coach : <strong>{{ analysis.predictedTime }}</strong></p>
+            {% if analysis.probabilityRationale %}<p class="muted">{{ analysis.probabilityRationale }}</p>{% endif %}
+        </div>
+    </div>
+
+    <div class="grid-3">
+        {% for title, items in {'Points forts': analysis.strengths, 'Risques': analysis.risks, 'Recommandations': analysis.recommendations} %}
+            {% if items is not empty %}
+                <div>
+                    <h3>{{ title }}</h3>
+                    <ul>
+                        {% for item in items %}<li>{{ item }}</li>{% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+        {% endfor %}
+    </div>
+</section>

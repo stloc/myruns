@@ -1,0 +1,8 @@
+{# Chiffre principal + jauge de probabilité (0-100 %). #}
+<div class="probability">
+    <span class="probability-value">{{ percent }}&nbsp;%</span>
+    <span class="probability-label">{{ label }}</span>
+    <div class="meter" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ percent }}" aria-label="{{ label }}">
+        <div class="meter-fill" style="--meter-value: {{ percent }}%"></div>
+    </div>
+</div>

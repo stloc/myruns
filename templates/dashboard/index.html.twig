@@ -1,0 +1,95 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+    <div class="page-heading">
+        <h1>Tableau de bord</h1>
+        <a class="button" href="{{ path('goal') }}">Prédire un objectif</a>
+    </div>
+
+    {% if activity_count == 0 %}
+        <section class="card empty-state">
+            <h2>Aucune activité</h2>
+            <p>Importez l'archive de votre compte Strava ou un dossier de traces GPX/TCX pour commencer.</p>
+            <a class="button" href="{{ path('import') }}">Importer des activités</a>
+        </section>
+    {% else %}
+        <section class="stat-grid" aria-label="Forme actuelle">
+            <div class="stat-tile">
+                <span class="stat-label">Indice de forme (VDOT)</span>
+                <span class="stat-value">{{ fitness.vdot is not null ? fitness.vdot|number_format(1, ',') : '–' }}</span>
+                <span class="stat-detail">tendance {{ fitness.vdotTrendPerWeek > 0 ? '+' }}{{ fitness.vdotTrendPerWeek|number_format(2, ',') }} / semaine</span>
+                {% if fitness.heartRateVdot is not null or fitness.raceVdot is not null %}
+                    <span class="stat-detail">
+                        performances {{ fitness.performanceVdot is not null ? fitness.performanceVdot|number_format(1, ',') : '–' }}
+                        {%- if fitness.heartRateVdot is not null %} · cardio {{ fitness.heartRateVdot|number_format(1, ',') }}{% endif %}
+                        {%- if fitness.raceVdot is not null %} · course {{ fitness.raceVdot|number_format(1, ',') }}{% endif %}
+                    </span>
+                {% else %}
+                    <span class="stat-detail"><a href="{{ path('profile') }}">Renseigner FC max et courses</a> pour affiner</span>
+                {% endif %}
+            </div>
+            <div class="stat-tile">
+                <span class="stat-label">Volume moyen</span>
+                <span class="stat-value">{{ fitness.kmPerWeekLast4Weeks|number_format(1, ',') }} km</span>
+                <span class="stat-detail">par semaine, sur 4 semaines</span>
+            </div>
+            <div class="stat-tile">
+                <span class="stat-label">Sorties</span>
+                <span class="stat-value">{{ fitness.runsLast4Weeks }}</span>
+                <span class="stat-detail">courses sur 4 semaines</span>
+            </div>
+            <div class="stat-tile">
+                <span class="stat-label">Sortie longue</span>
+                <span class="stat-value">{{ fitness.longestRunKmLast8Weeks|number_format(1, ',') }} km</span>
+                <span class="stat-detail">la plus longue sur 8 semaines</span>
+            </div>
+        </section>
+
+        <div class="grid-2">
+            <section class="card">
+                <h2>Volume de course par semaine</h2>
+                <p class="card-subtitle">26 dernières semaines, en km</p>
+                {{ include('dashboard/_column_chart.html.twig', {chart: chart, unit: 'km'}, with_context = false) }}
+                <details class="table-view">
+                    <summary>Voir les données</summary>
+                    <table class="data-table">
+                        <thead><tr><th scope="col">Semaine du</th><th scope="col" class="num">km</th></tr></thead>
+                        <tbody>
+                            {% for week, km in weekly_km|reverse(true) %}
+                                <tr><td>{{ week|date('d/m/Y') }}</td><td class="num">{{ km|number_format(1, ',') }}</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </details>
+            </section>
+
+            <section class="card">
+                <h2>Potentiel actuel</h2>
+                <p class="card-subtitle">Temps réalisables aujourd'hui selon votre forme</p>
+                {% if fitness.potentialTimes is empty %}
+                    <p>Pas assez de courses de 3 km ou plus sur les 12 dernières semaines.</p>
+                {% else %}
+                    <table class="data-table">
+                        <tbody>
+                            {% for potential in fitness.potentialTimes %}
+                                <tr>
+                                    <th scope="row">{{ potential.distance|distance }}</th>
+                                    <td class="num">{{ potential.seconds|duration }}</td>
+                                    <td class="num muted">{{ (potential.seconds / (potential.distance / 1000))|pace }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% endif %}
+            </section>
+        </div>
+
+        <section class="card">
+            <div class="card-heading">
+                <h2>Dernières activités</h2>
+                <a href="{{ path('activity_index') }}">Toutes les activités ({{ activity_count }})</a>
+            </div>
+            {{ include('activity/_table.html.twig', {activities: latest_activities}, with_context = false) }}
+        </section>
+    {% endif %}
+{% endblock %}

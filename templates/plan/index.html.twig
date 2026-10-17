@@ -1,0 +1,148 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Programme d'entraînement{% endblock %}
+
+{% block body %}
+    {% set weekdays = ['lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.', 'dim.'] %}
+    <div class="page-heading">
+        <h1>Programme d'entraînement</h1>
+    </div>
+
+    {% if not goal %}
+        <section class="card empty-state">
+            <h2>Aucun objectif enregistré</h2>
+            <p>Le programme se construit à partir de votre objectif : distance, temps visé et date.</p>
+            <a class="button" href="{{ path('goal') }}">Saisir un objectif</a>
+        </section>
+    {% elseif not plan %}
+        <section class="card empty-state">
+            <h2>Objectif passé</h2>
+            <p>La date de votre dernier objectif ({{ goal.describe }}) est dépassée.</p>
+            <a class="button" href="{{ path('goal') }}">Choisir un nouvel objectif</a>
+        </section>
+    {% else %}
+        <p class="intro">Objectif : <strong>{{ goal.describe }}</strong> · <a href="{{ path('goal') }}">modifier</a></p>
+
+        <section class="card">
+            <h2>Réglages</h2>
+            {{ form_start(settings_form, {attr: {class: 'form plan-settings'}}) }}
+                <div class="plan-settings-fields">
+                    {{ form_row(settings_form.planSessionsPerWeek) }}
+                    {{ form_row(settings_form.clubWeekday) }}
+                    {{ form_row(settings_form.clubTime) }}
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="button">Enregistrer</button>
+                </div>
+            {{ form_end(settings_form) }}
+        </section>
+
+        <div class="stat-grid">
+            <div class="stat-tile">
+                <span class="stat-label">Semaines</span>
+                <span class="stat-value">{{ plan.weeks|length }}</span>
+                <span class="stat-detail">jusqu'au {{ goal.date|date('d/m/Y') }}</span>
+            </div>
+            <div class="stat-tile">
+                <span class="stat-label">Volume au pic</span>
+                <span class="stat-value">{{ plan.peakVolumeKm|number_format(0, ',') }} km</span>
+                <span class="stat-detail">par semaine</span>
+            </div>
+            <div class="stat-tile">
+                <span class="stat-label">Sortie longue max</span>
+                <span class="stat-value">{{ plan.longestRunKm|number_format(1, ',') }} km</span>
+            </div>
+        </div>
+
+        <div class="grid-2">
+            <section class="card">
+                <h2>Vos allures</h2>
+                <dl class="key-values">
+                    <dt>Footing</dt>
+                    <dd>{{ plan.paces.easyFast|duration }}–{{ plan.paces.easySlow|duration }}/km</dd>
+                    <dt>Sortie longue</dt>
+                    <dd>{{ plan.paces.easySlow|pace }}</dd>
+                    <dt>Marathon</dt>
+                    <dd>{{ plan.paces.marathon|pace }}</dd>
+                    <dt>Seuil</dt>
+                    <dd>{{ plan.paces.threshold|pace }}</dd>
+                    <dt>VMA</dt>
+                    <dd>{{ plan.paces.interval|pace }}</dd>
+                    <dt>Allure objectif</dt>
+                    <dd><strong>{{ plan.paces.goal|pace }}</strong></dd>
+                </dl>
+            </section>
+
+            <section class="card">
+                <h2>À savoir</h2>
+                <ul class="factors">
+                    {% for note in plan.notes %}
+                        <li>{{ note }}</li>
+                    {% endfor %}
+                    <li>Une semaine allégée toutes les quatre pour assimiler le travail.</li>
+                    <li>Les jours sont indicatifs : vous pouvez les décaler, en évitant deux séances intenses d'affilée.</li>
+                    <li>Une semaine différente (club manqué, sortie en plus ou en moins) : ajustez-la dans la semaine concernée.</li>
+                </ul>
+            </section>
+        </div>
+
+        {% for week in plan.weeks %}
+            {% set current = week.contains(today) %}
+            {% set week_id = week.monday|date('Y-m-d') %}
+            <details class="card plan-week" id="semaine-{{ week_id }}" {% if current %}open{% endif %}>
+                <summary>
+                    <span class="plan-week-title">Semaine {{ week.number }}</span>
+                    <span class="muted">{{ week.monday|date('d/m') }} → {{ week.sunday|date('d/m') }}</span>
+                    <span>{{ week.phase.label }}</span>
+                    {% if week.recovery %}<span class="badge">allégée</span>{% endif %}
+                    {% if week.club %}<span class="badge">club</span>{% endif %}
+                    {% if week.adjusted %}<span class="badge">ajustée</span>{% endif %}
+                    {% if current %}<span class="badge">cette semaine</span>{% endif %}
+                    <span class="plan-week-volume">{{ week.volumeKm|number_format(1, ',') }} km</span>
+                </summary>
+                <p class="card-subtitle">{{ week.phase.purpose }}</p>
+                <div class="table-scroll">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Jour</th>
+                                <th scope="col">Séance</th>
+                                <th scope="col">Contenu</th>
+                                <th scope="col" class="num">Distance</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for session in week.sessions %}
+                                <tr>
+                                    {% set day = week.dateOf(session) %}
+                                    <td>{% if day %}{{ weekdays[day|date('N') - 1] }} {{ day|date('d/m') }}{% endif %}</td>
+                                    <td>{{ session.type.label }}</td>
+                                    <td>{{ session.description }}</td>
+                                    <td class="num">{{ session.distanceKm|number_format(1, ',') }} km</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <form method="post" action="{{ path('plan_week', {week: week_id}) }}" class="plan-week-form">
+                    <input type="hidden" name="_token" value="{{ csrf_token('plan_week_' ~ week_id) }}">
+                    <label>Sorties cette semaine
+                        <select name="sessions">
+                            {% for choice in session_choices %}
+                                <option value="{{ choice }}" {% if choice == week.plannedSessions %}selected{% endif %}>{{ choice }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                    {% if plan.clubWeekday %}
+                        <input type="hidden" name="club_present" value="1">
+                        <label><input type="checkbox" name="club" value="1" {% if week.club %}checked{% endif %}> Je vais au club</label>
+                    {% endif %}
+                    <button type="submit" class="button button-secondary">Ajuster la semaine</button>
+                    {% if week.adjusted %}
+                        <button type="submit" name="action" value="reset" class="link-button">Revenir au réglage général</button>
+                    {% endif %}
+                </form>
+            </details>
+        {% endfor %}
+    {% endif %}
+{% endblock %}

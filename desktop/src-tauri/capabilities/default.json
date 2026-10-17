@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Écran de démarrage local uniquement : les pages servies par PHP n'ont accès à aucune commande Tauri.",
+  "windows": ["main"],
+  "permissions": ["core:default"]
+}

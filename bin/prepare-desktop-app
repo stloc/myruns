@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# Prépare l'app Symfony embarquée dans l'application de bureau : desktop/build/app
+# (dépendances de production uniquement, assets compilés, aucune donnée personnelle).
+#
+# Sur un poste dont le token GitHub de Composer est invalide : COMPOSER_HOME="$(mktemp -d)" bin/prepare-desktop-app
+set -euo pipefail
+
+root="$(cd "$(dirname "$0")/.." && pwd)"
+target="$root/desktop/build/app"
+
+rm -rf "$target"
+mkdir -p "$target"
+
+# Liste explicite : jamais .env.local, imports/ (archive Strava), var/ (base, réglages) ni tests/.
+for item in assets bin config migrations public src templates importmap.php composer.json composer.lock symfony.lock .env; do
+    cp -R "$root/$item" "$target/"
+done
+cp "$root/desktop/router.php" "$target/router.php"
+rm -rf "$target/public/assets" "$target/bin/prepare-desktop-app"
+
+cd "$target"
+export APP_ENV=prod APP_DEBUG=0
+composer install --no-dev --optimize-autoloader --no-interaction --no-progress
+php bin/console importmap:install --no-interaction
+php bin/console asset-map:compile --no-interaction
+rm -rf var
+
+echo "Application prête : $target"

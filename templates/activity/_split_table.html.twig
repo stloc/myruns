@@ -1,0 +1,33 @@
+{# Tableau de temps de passage ; la barre représente la vitesse relative (100 % = tronçon le plus rapide). #}
+<div class="table-scroll">
+    <table class="data-table split-table">
+        <thead>
+            <tr>
+                <th scope="col">{{ label }}</th>
+                <th scope="col" class="num">Distance</th>
+                <th scope="col" class="num">Temps</th>
+                <th scope="col" class="num">Cumul</th>
+                <th scope="col" class="num">Allure</th>
+                <th scope="col" class="speed-col"><span class="visually-hidden">Vitesse relative</span></th>
+                <th scope="col" class="num">FC moy.</th>
+                <th scope="col" class="num">FC max</th>
+                <th scope="col" class="num">D+</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in table.rows %}
+                <tr{% if row.fast %} class="is-fast"{% endif %}>
+                    <td>{{ row.split.position }}{% if row.fast %} <span class="badge">rapide</span>{% endif %}</td>
+                    <td class="num">{{ row.split.distanceMeters >= 995 and row.split.distanceMeters <= 1005 ? '1 km' : row.split.distanceMeters|number_format(0, ',', ' ') ~ ' m' }}</td>
+                    <td class="num">{{ row.split.seconds|duration }}</td>
+                    <td class="num muted">{{ row.cumulative|duration }}</td>
+                    <td class="num"><strong>{{ row.pace|pace }}</strong></td>
+                    <td class="speed-col" aria-hidden="true"><span class="speed-bar" style="--speed: {{ row.speed_percent }}%"></span></td>
+                    <td class="num">{{ row.split.averageHeartRate ?? '–' }}</td>
+                    <td class="num">{{ row.split.maxHeartRate ?? '–' }}</td>
+                    <td class="num">{{ row.split.elevationGain is not null ? row.split.elevationGain|number_format(0) ~ ' m' : '–' }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

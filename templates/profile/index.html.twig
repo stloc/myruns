@@ -1,0 +1,74 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Profil{% endblock %}
+
+{% block body %}
+    <div class="page-heading">
+        <h1>Profil</h1>
+    </div>
+    <p class="intro muted">Tous les champs sont facultatifs. Chacun affine l'estimation de votre forme et la prédiction de vos objectifs.</p>
+
+    <div class="grid-2">
+        <section class="card">
+            <h2>Coureur</h2>
+            {{ form_start(profile_form, {attr: {class: 'form form-columns'}}) }}
+                {{ form_widget(profile_form) }}
+                <div class="form-actions">
+                    <button type="submit" class="button">Enregistrer</button>
+                </div>
+            {{ form_end(profile_form) }}
+        </section>
+
+        <section class="card">
+            <h2>Ajouter une course officielle</h2>
+            <p class="card-subtitle">Un chrono de course est un effort maximal : c'est la donnée la plus fiable pour estimer votre forme (prise en compte pendant 26 semaines).</p>
+            {{ form_start(race_form, {attr: {class: 'form'}}) }}
+                {{ form_widget(race_form) }}
+                <div class="form-actions">
+                    <button type="submit" class="button">Ajouter la course</button>
+                </div>
+            {{ form_end(race_form) }}
+        </section>
+    </div>
+
+    <section class="card">
+        <h2>Mes courses officielles</h2>
+        {% if races is empty %}
+            <p class="muted">Aucune course enregistrée.</p>
+        {% else %}
+            <div class="table-scroll">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Date</th>
+                            <th scope="col">Course</th>
+                            <th scope="col" class="num">Distance</th>
+                            <th scope="col" class="num">Temps</th>
+                            <th scope="col" class="num">Allure</th>
+                            <th scope="col" class="num">VDOT</th>
+                            <th scope="col"><span class="visually-hidden">Actions</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for race in races %}
+                            <tr>
+                                <td>{{ race.date|date('d/m/Y') }}</td>
+                                <td>{{ race.name ?: '–' }}</td>
+                                <td class="num">{{ race.distanceMeters|distance }}</td>
+                                <td class="num">{{ race.timeSeconds|duration }}</td>
+                                <td class="num">{{ race.paceSecondsPerKm|pace }}</td>
+                                <td class="num">{{ race.vdot|number_format(1, ',') }}</td>
+                                <td class="actions">
+                                    <form method="post" action="{{ path('race_delete', {id: race.id}) }}">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('race_delete_' ~ race.id) }}">
+                                        <button type="submit" class="link-button">Supprimer</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+    </section>
+{% endblock %}

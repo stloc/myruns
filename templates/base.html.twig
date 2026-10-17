@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="fr">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="color-scheme" content="light dark">
+        <title>{% block title %}Tableau de bord{% endblock %} · MyStrava</title>
+        <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 128 128%22><text y=%221.2em%22 font-size=%2296%22>🏃</text></svg>">
+        {% block javascripts %}
+            {% block importmap %}{{ importmap('app') }}{% endblock %}
+        {% endblock %}
+    </head>
+    <body>
+        <header class="site-header">
+            <a class="brand" href="{{ path('dashboard') }}">MyStrava</a>
+            <nav aria-label="Navigation principale">
+                {% set route = app.request.attributes.get('_route') %}
+                {% for item in [
+                    {route: 'dashboard', label: 'Tableau de bord'},
+                    {route: 'activity_index', label: 'Activités'},
+                    {route: 'goal', label: 'Objectif'},
+                    {route: 'plan', label: 'Programme'},
+                    {route: 'import', label: 'Import'},
+                    {route: 'profile', label: 'Profil'},
+                    {route: 'settings', label: 'Réglages'},
+                ] %}
+                    <a href="{{ path(item.route) }}" {% if route == item.route %}aria-current="page"{% endif %}>{{ item.label }}</a>
+                {% endfor %}
+            </nav>
+        </header>
+
+        <main class="page">
+            {% for type, messages in app.flashes %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ type }}" role="status">{{ message }}</div>
+                {% endfor %}
+            {% endfor %}
+
+            {% block body %}{% endblock %}
+        </main>
+    </body>
+</html>

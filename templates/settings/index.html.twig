@@ -1,0 +1,44 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Réglages{% endblock %}
+
+{% block body %}
+    <div class="page-heading">
+        <h1>Réglages</h1>
+    </div>
+    <p class="intro muted">Les clés restent sur cet ordinateur. Laissez un champ vide pour garder la clé déjà enregistrée.</p>
+
+    <div class="grid-2">
+        <section class="card">
+            <h2>Clés d'accès</h2>
+            {{ form_start(form, {attr: {class: 'form'}}) }}
+                {{ form_errors(form) }}
+                {% for key, status in keys %}
+                    {{ form_row(form[key]) }}
+                    {% if status.from_environment %}
+                        <p class="muted">Définie par la configuration du serveur (.env.local) : elle est prioritaire sur cette page.</p>
+                    {% elseif status.stored %}
+                        <p class="muted">Clé enregistrée ({{ status.stored }}).</p>
+                    {% else %}
+                        <p class="muted">Aucune clé enregistrée.</p>
+                    {% endif %}
+                {% endfor %}
+                <div class="form-actions">
+                    <button type="submit" class="button">Enregistrer</button>
+                </div>
+            {{ form_end(form) }}
+        </section>
+
+        <section class="card">
+            <h2>Effacer une clé</h2>
+            {% for key, status in keys|filter(status => status.stored) %}
+                <form method="post" action="{{ path('settings_clear', {key: key}) }}">
+                    <input type="hidden" name="_token" value="{{ csrf_token('settings_clear') }}">
+                    <button type="submit" class="button button-secondary">Effacer {{ form[key].vars.label }}</button>
+                </form>
+            {% else %}
+                <p class="muted">Aucune clé enregistrée sur cette page.</p>
+            {% endfor %}
+        </section>
+    </div>
+{% endblock %}

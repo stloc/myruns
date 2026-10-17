@@ -1,0 +1,23 @@
+# see https://symfony.com/doc/current/reference/configuration/framework.html
+framework:
+    secret: '%env(APP_SECRET)%'
+
+    # Note that the session will be started ONLY if you read or write from it.
+    session: true
+
+    #esi: true
+    #fragments: true
+
+    http_client:
+        scoped_clients:
+            # API intervals.icu : clé personnelle en authentification basique (identifiant littéral « API_KEY »).
+            intervals.client:
+                base_uri: 'https://intervals.icu'
+                auth_basic: 'API_KEY:%env(INTERVALS_API_KEY)%'
+                timeout: 30
+
+when@test:
+    framework:
+        test: true
+        session:
+            storage_factory_id: session.storage.factory.mock_file

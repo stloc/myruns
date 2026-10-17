@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="color-scheme" content="light dark">
+    <title>MyStrava</title>
+    <style>
+        :root {
+            --page-bg: #f9f9f7;
+            --text: #0b0b0b;
+            --text-muted: #6b6a65;
+            --accent: #c2410c;
+            --error-bg: #fde4e4;
+            --error-text: #a11d1d;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --page-bg: #0d0d0d;
+                --text: #f0efec;
+                --text-muted: #a3a29b;
+                --accent: #fb923c;
+                --error-bg: #2f1212;
+                --error-text: #f08a8a;
+            }
+        }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            background: var(--page-bg);
+            color: var(--text);
+            font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+        }
+        main { max-width: 36rem; padding: 2rem; text-align: center; }
+        h1 { color: var(--accent); margin: 0 0 .5rem; }
+        p { color: var(--text-muted); }
+        .error { background: var(--error-bg); color: var(--error-text); padding: 1rem; border-radius: .5rem; text-align: left; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <main>
+        <h1>MyStrava</h1>
+        <p id="status">Démarrage… (la première ouverture prend quelques secondes)</p>
+    </main>
+    <script>
+        window.showError = function (message) {
+            var status = document.getElementById('status');
+            status.className = 'error';
+            status.textContent = 'MyStrava n\'a pas pu démarrer.\n\n' + message;
+        };
+    </script>
+</body>
+</html>

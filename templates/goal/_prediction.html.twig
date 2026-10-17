@@ -1,0 +1,24 @@
+<h2>{{ prediction.goal.distanceMeters|distance }} en {{ prediction.goal.targetSeconds|duration }} le {{ prediction.goal.date|date('d/m/Y') }}</h2>
+
+{{ include('goal/_probability.html.twig', {percent: prediction.probabilityPercent, label: 'de chances de réussite (modèle statistique)'}, with_context = false) }}
+
+<dl class="key-values">
+    <dt>Temps prédit aujourd'hui</dt>
+    <dd>{{ prediction.predictedSecondsToday|duration }}</dd>
+    <dt>Temps prédit le jour J</dt>
+    <dd>{{ prediction.predictedSecondsOnGoalDate|duration }} <span class="muted">(confiance {{ prediction.confidenceLabel }})</span></dd>
+    <dt>Allure visée</dt>
+    <dd>{{ (prediction.goal.targetSeconds / (prediction.goal.distanceMeters / 1000))|pace }}</dd>
+    <dt>Indice de forme</dt>
+    <dd>requis {{ prediction.requiredVdot|number_format(1, ',') }} · projeté {{ prediction.projectedVdot|number_format(1, ',') }}{% if prediction.endurancePenalty > 0 %} · pénalité endurance {{ prediction.endurancePenalty|number_format(1, ',') }}{% endif %}</dd>
+    <dt>Semaines restantes</dt>
+    <dd>{{ prediction.weeksToGoal }}</dd>
+</dl>
+
+{% if prediction.factors is not empty %}
+    <ul class="factors">
+        {% for factor in prediction.factors %}
+            <li>{{ factor }}</li>
+        {% endfor %}
+    </ul>
+{% endif %}

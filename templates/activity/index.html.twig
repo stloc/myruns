@@ -1,0 +1,32 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Activités{% endblock %}
+
+{% block body %}
+    <div class="page-heading">
+        <h1>Activités <span class="muted">({{ total }})</span></h1>
+        <form method="get" class="filters">
+            <label for="sport">Type</label>
+            <select id="sport" name="sport" data-autosubmit>
+                <option value="">Tous</option>
+                {% for sport in sports %}
+                    <option value="{{ sport.value }}" {% if sport == selected_sport %}selected{% endif %}>{{ sport.label }}</option>
+                {% endfor %}
+            </select>
+            <noscript><button type="submit" class="button button-secondary">Filtrer</button></noscript>
+        </form>
+    </div>
+
+    <section class="card">
+        {{ include('activity/_table.html.twig', {activities: activities}, with_context = false) }}
+
+        {% if page_count > 1 %}
+            {% set query = selected_sport ? {sport: selected_sport.value} : {} %}
+            <nav class="pagination" aria-label="Pagination">
+                {% if page > 1 %}<a href="{{ path('activity_index', query|merge({page: page - 1})) }}">← Plus récentes</a>{% endif %}
+                <span>Page {{ page }} / {{ page_count }}</span>
+                {% if page < page_count %}<a href="{{ path('activity_index', query|merge({page: page + 1})) }}">Plus anciennes →</a>{% endif %}
+            </nav>
+        {% endif %}
+    </section>
+{% endblock %}

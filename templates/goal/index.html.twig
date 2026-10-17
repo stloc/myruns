@@ -1,0 +1,46 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Objectif{% endblock %}
+
+{% block body %}
+    <div class="page-heading">
+        <h1>Objectif &amp; prédiction</h1>
+    </div>
+
+    <div class="grid-2 grid-goal">
+        <section class="card">
+            <h2>Votre objectif</h2>
+            {{ form_start(form, {attr: {class: 'form', 'data-loading-form': ''}}) }}
+                {{ form_row(form.distance) }}
+                {{ form_row(form.time) }}
+                {{ form_row(form.date) }}
+                <div class="form-actions">
+                    <button type="submit" name="action" value="predict" class="button">Calculer</button>
+                    <button type="submit" name="action" value="ai" class="button button-secondary" data-loading-label="Analyse IA en cours…">Calculer + analyse IA</button>
+                </div>
+            {{ form_end(form) }}
+        </section>
+
+        <section class="card">
+            {% if prediction %}
+                {{ include('goal/_prediction.html.twig', {prediction: prediction}, with_context = false) }}
+                <p><a href="{{ path('plan') }}">Voir le programme d'entraînement pour cet objectif →</a></p>
+            {% elseif submitted %}
+                <h2>Prédiction impossible</h2>
+                <p>Pas assez de sorties de course sur les 12 dernières semaines. <a href="{{ path('import') }}">Importer des activités</a>.</p>
+            {% else %}
+                <h2>Comment ça marche</h2>
+                <p>Votre forme est estimée à partir de vos meilleures courses des 12 dernières semaines, puis projetée jusqu'à la date de l'objectif en tenant compte de votre régularité et de votre volume.</p>
+                <p>L'analyse IA relit ensuite votre historique comme le ferait un entraîneur et ajuste le pourcentage si besoin.</p>
+            {% endif %}
+        </section>
+    </div>
+
+    {% if ai_error %}
+        <div class="alert alert-error" role="alert">Analyse IA indisponible : {{ ai_error }}</div>
+    {% endif %}
+
+    {% if analysis %}
+        {{ include('goal/_analysis.html.twig', {analysis: analysis}, with_context = false) }}
+    {% endif %}
+{% endblock %}

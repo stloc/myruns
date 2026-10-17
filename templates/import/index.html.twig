@@ -1,0 +1,57 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Import{% endblock %}
+
+{% block body %}
+    <div class="page-heading">
+        <h1>Importer des activités</h1>
+    </div>
+
+    <section class="card">
+        <h2>Nouvelles séances (intervals.icu)</h2>
+        {% if intervals_configured %}
+            <p>Récupère les séances arrivées dans intervals.icu depuis votre montre, avec leurs temps de passage. Aussi lancé chaque jour automatiquement si la tâche planifiée est en place.</p>
+            <form method="post" action="{{ path('import_intervals') }}" data-loading-form>
+                <input type="hidden" name="_token" value="{{ csrf_token('import_intervals') }}">
+                <button type="submit" class="button" data-loading-label="Synchronisation…">Synchroniser maintenant</button>
+            </form>
+        {% else %}
+            <p>Non configuré. Connectez votre montre à intervals.icu, puis enregistrez votre clé API intervals.icu dans les <a href="{{ path('settings') }}">Réglages</a>.</p>
+        {% endif %}
+    </section>
+
+    <div class="grid-2">
+        <section class="card">
+            <h2>Envoyer un fichier</h2>
+            {{ form_start(form, {attr: {class: 'form', 'data-loading-form': ''}}) }}
+                {{ form_row(form.file) }}
+                <div class="form-actions">
+                    <button type="submit" class="button" data-loading-label="Import en cours…">Importer</button>
+                </div>
+            {{ form_end(form) }}
+        </section>
+
+        <section class="card">
+            <h2>Dossier surveillé</h2>
+            {% if default_path %}
+                <p>Importe le dossier ou l'archive configuré dans <code>STRAVA_EXPORT_PATH</code> : <code>{{ default_path }}</code></p>
+                <form method="post" action="{{ path('import_folder') }}" data-loading-form>
+                    <input type="hidden" name="_token" value="{{ csrf_token('import_folder') }}">
+                    <button type="submit" class="button button-secondary" data-loading-label="Import en cours…">Importer le dossier</button>
+                </form>
+            {% else %}
+                <p class="muted">Aucun dossier configuré : utilisez « Envoyer un fichier ». (Installation de développement : <code>STRAVA_EXPORT_PATH</code> dans <code>.env.local</code>.)</p>
+            {% endif %}
+        </section>
+    </div>
+
+    <section class="card">
+        <h2>Où trouver ses activités ?</h2>
+        <ul>
+            <li><strong>Archive Strava</strong> : sur strava.com, Paramètres → Mon compte → <em>Télécharger ou supprimer votre compte</em> → <em>Demander une archive</em>. Strava envoie un lien par e-mail vers <code>export_XXXX.zip</code>.</li>
+            <li><strong>Au quotidien</strong> : la montre se synchronise avec intervals.icu (gratuit), puis « Synchroniser maintenant » ou la tâche planifiée.</li>
+            <li><strong>Traces FIT/GPX/TCX</strong> : fichiers exportés à la main ou dossier alimenté par un outil tiers.</li>
+        </ul>
+        <p class="muted">Un import peut être relancé autant de fois que nécessaire : les activités déjà connues ne sont pas dupliquées.</p>
+    </section>
+{% endblock %}

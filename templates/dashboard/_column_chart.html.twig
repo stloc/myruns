@@ -1,0 +1,24 @@
+{# Histogramme à une série : colonnes à sommet arrondi, grille discrète, info-bulle au survol. #}
+<div class="chart" data-chart>
+    <svg viewBox="0 0 {{ constant('App\\Chart\\ColumnChart::WIDTH') }} {{ constant('App\\Chart\\ColumnChart::HEIGHT') }}" role="img" aria-label="Histogramme du volume hebdomadaire ({{ unit }})">
+        {% for line in chart.gridlines %}
+            <line class="chart-grid{{ loop.first ? ' chart-baseline' }}" x1="{{ chart.plotLeft }}" x2="{{ chart.plotRight }}" y1="{{ line.y }}" y2="{{ line.y }}"/>
+            <text class="chart-axis-label" x="{{ chart.plotLeft - 6 }}" y="{{ line.y + 4 }}" text-anchor="end">{{ line.value|number_format(0, ',', ' ') }}</text>
+        {% endfor %}
+
+        {% for column in chart.columns %}
+            <g class="chart-column" tabindex="0" data-tooltip="Semaine du {{ column.label|date('d/m') }} : {{ column.value|number_format(1, ',') }} {{ unit }}">
+                {# Zone de survol plus large que la colonne elle-même. #}
+                <rect class="chart-hit" x="{{ column.x - 4 }}" y="0" width="{{ column.width + 8 }}" height="{{ chart.baselineY }}"/>
+                {% if column.path %}<path class="chart-bar" d="{{ column.path }}"/>{% endif %}
+                {% if column.highlight and column.value > 0 %}
+                    <text class="chart-value-label" x="{{ column.x + column.width / 2 }}" y="{{ column.y - 6 }}" text-anchor="middle">{{ column.value|number_format(0, ',') }}</text>
+                {% endif %}
+                {% if column.tick %}
+                    <text class="chart-axis-label" x="{{ column.x + column.width / 2 }}" y="{{ chart.baselineY + 18 }}" text-anchor="middle">{{ column.label|date('d/m') }}</text>
+                {% endif %}
+            </g>
+        {% endfor %}
+    </svg>
+    <div class="chart-tooltip" role="tooltip" hidden></div>
+</div>

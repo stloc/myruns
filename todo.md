@@ -1,0 +1,2 @@
+- corriger dénivelé suunto qui n'est pas exact en passant par les données GPS
+- synchro intervals.icu et import compatible avec autres marques comme garmin en priorité
