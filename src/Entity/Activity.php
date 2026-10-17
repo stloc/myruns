@@ -34,6 +34,10 @@ class Activity
     #[ORM\Column(nullable: true)]
     public private(set) ?float $groundElevationGain = null;
 
+    /** Commune du point de départ (géocodage inverse IGN de la trace GPS, France seulement). */
+    #[ORM\Column(length: 100, nullable: true)]
+    public private(set) ?string $city = null;
+
     /** Trace GPS simplifiée (chargée seulement quand on la lit : page détail). */
     #[ORM\OneToOne(cascade: ['persist'], orphanRemoval: true)]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
@@ -125,11 +129,16 @@ class Activity
      *
      * @return bool true si quelque chose a changé
      */
-    public function replaceTrackData(array $splits, ?int $sustainedMaxHeartRate, ?float $groundElevationGain = null, array $routePoints = []): bool
+    public function replaceTrackData(array $splits, ?int $sustainedMaxHeartRate, ?float $groundElevationGain = null, array $routePoints = [], ?string $city = null): bool
     {
         $placeChanged = $routePoints !== ($this->route->points ?? []);
         if ($placeChanged) {
             $this->route = [] === $routePoints ? null : new ActivityRoute($routePoints);
+        }
+        // Commune introuvable (réseau, hors de France) : on garde celle déjà connue.
+        if (null !== $city && $city !== $this->city) {
+            $this->city = $city;
+            $placeChanged = true;
         }
 
         $positions = [];

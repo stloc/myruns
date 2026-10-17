@@ -23,11 +23,17 @@ framework:
             openmeteo.client:
                 base_uri: 'https://api.open-meteo.com'
                 timeout: 20
+            # Ville hors de France (Nominatim / OpenStreetMap) : sa charte exige un User-Agent identifiant l'application.
+            nominatim.client:
+                base_uri: 'https://nominatim.openstreetmap.org'
+                timeout: 20
+                headers:
+                    User-Agent: 'MyRuns/1.0 (application personnelle de suivi de course à pied)'
 
 when@test:
     framework:
         test: true
-        # Aucun appel réseau pendant les tests (IGN…) : les tests de synchro injectent leur faux client.
+        # Aucun appel réseau pendant les tests (IGN, Open-Meteo, Nominatim…) : les tests de synchro injectent leur faux client.
         http_client:
             mock_response_factory: App\Tests\Double\NoNetworkResponseFactory
         session:

@@ -10,11 +10,15 @@ use App\Elevation\OpenMeteoElevation;
 use App\Entity\Activity;
 use App\Enum\SplitKind;
 use App\Enum\Sport;
+use App\Geocoding\CityFinder;
+use App\Geocoding\IgnReverseGeocoder;
+use App\Geocoding\NominatimReverseGeocoder;
 use App\Import\ActivityImporter;
 use App\Import\StravaCsvParser;
 use App\Import\Track\SplitCalculator;
 use App\Import\TrackFileParser;
 use App\Repository\ActivityRepository;
+use App\Repository\ActivitySearch;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Cache\Adapter\ArrayAdapter;
 use Symfony\Component\Filesystem\Filesystem;
@@ -52,7 +56,7 @@ final class GroundElevationTest extends KernelTestCase
 
         self::assertSame(1, $first->created);
         self::assertSame(1, $first->groundElevation);
-        self::assertSame(1, $this->requests);
+        self::assertSame(2, $this->requests, 'Une requête d\'altimétrie, une de géocodage');
         $activity = self::getContainer()->get(ActivityRepository::class)->find('file:trail.gpx');
         self::assertInstanceOf(Activity::class, $activity);
         self::assertSame(Sport::TrailRun, $activity->sport, 'Trail reconnu par le nom de la trace');
@@ -60,6 +64,8 @@ final class GroundElevationTest extends KernelTestCase
         // 50 m de montée, sommet un peu arrondi par le lissage.
         self::assertEqualsWithDelta(48.5, $activity->groundElevationGain, 1.5);
         self::assertSame($activity->groundElevationGain, $activity->effectiveElevationGain());
+        self::assertSame('Plouguerneau', $activity->city, 'Commune du point de départ');
+        self::assertSame(1, self::getContainer()->get(ActivityRepository::class)->countMatching(ActivitySearch::fromQuery(['q' => 'plouguerneau'])), 'Recherche par ville');
         $kilometers = $activity->splitsOf(SplitKind::Kilometer);
         self::assertCount(2, $kilometers);
         self::assertEqualsWithDelta($activity->groundElevationGain, ($kilometers[0]->elevationGain ?? 0) + ($kilometers[1]->elevationGain ?? 0), 1.0, 'D+ au km tiré du terrain');
@@ -69,7 +75,7 @@ final class GroundElevationTest extends KernelTestCase
 
         self::assertSame(1, $second->unchanged);
         self::assertSame(0, $second->withSplits);
-        self::assertSame(1, $this->requests);
+        self::assertSame(2, $this->requests);
     }
 
     private function importer(): ActivityImporter
@@ -77,6 +83,9 @@ final class GroundElevationTest extends KernelTestCase
         // Le terrain monte de 50 m sur les 1000 premiers mètres, puis redescend.
         $client = new MockHttpClient(function (string $method, string $url, array $options): JsonMockResponse {
             ++$this->requests;
+            if (str_contains($url, '/geocodage/reverse')) {
+                return new JsonMockResponse(['type' => 'FeatureCollection', 'features' => [['properties' => ['city' => 'Plouguerneau', '_type' => 'parcel']]]]);
+            }
             /** @var array{lat: string} $body */
             $body = json_decode(\is_string($options['body'] ?? null) ? $options['body'] : '', true, flags: \JSON_THROW_ON_ERROR);
             $elevations = array_map(static function (string $lat): float {
@@ -99,6 +108,7 @@ final class GroundElevationTest extends KernelTestCase
             new TrackFileParser(),
             new SplitCalculator(),
             new ElevationCorrector(new IgnAltimetry($client, new ArrayAdapter()), new OpenMeteoElevation($unused, new ArrayAdapter(), minIntervalSeconds: 0.0)),
+            new CityFinder(new IgnReverseGeocoder($client, new ArrayAdapter()), new NominatimReverseGeocoder($unused, new ArrayAdapter())),
             $this->workDir,
         );
     }

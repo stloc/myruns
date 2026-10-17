@@ -92,6 +92,12 @@ Pendant l'import, chaque trace GPS reçoit :
   Open-Meteo atteint), le D+ de la source est gardé et la trace est complétée au prochain import.
   Après 3 échecs réseau de suite, un service n'est plus appelé jusqu'à la fin de l'étape ou de la
   commande (`src/Http/NetworkGuard.php` : pas d'attente du délai réseau pour chaque trace).
+- la **ville** du départ (`src/Geocoding/`) : commune de la parcelle cadastrale la plus proche du
+  premier point GPS, d'après le géocodage inverse de l'IGN (France, sans clé) ; ailleurs, ville
+  d'après **Nominatim** (OpenStreetMap, sans clé, 1 appel par seconde au plus comme l'exige sa
+  charte). Réponses en cache par position arrondie à ~100 m dans `<données>/place-cache` ; colonne
+  « Ville » de la liste des activités, recherche par nom **ou** ville. En mer ou sans GPS : « – ». Activités
+  importées avant cette version : relancer l'import de l'archive pour obtenir leur ville ;
 - un type **Trail** si la source le déclare (intervals.icu `TrailRun`, GPX/TCX) ou si le nom
   contient « trail » : le CSV Strava ne donne que l'ancien type « Course à pied », mais le nom
   automatique (« Trail le matin ») garde le type précis. Le sous-sport FIT « trail » est ignoré

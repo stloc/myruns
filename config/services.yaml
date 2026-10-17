@@ -29,6 +29,11 @@ services:
         class: Symfony\Component\Cache\Adapter\FilesystemAdapter
         arguments: ['ign', 0, '%app.data_dir%/elevation-cache']
 
+    # Communes déjà retrouvées (géocodage inverse IGN) : même principe.
+    app.place_cache:
+        class: Symfony\Component\Cache\Adapter\FilesystemAdapter
+        arguments: ['ign', 0, '%app.data_dir%/place-cache']
+
 when@test:
     parameters:
         # Jamais les réglages du poste de développement pendant les tests.

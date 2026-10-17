@@ -45,6 +45,7 @@ peut ensuite commenter ce résultat et proposer des conseils d'entraînement.
 |---|---|
 | `src/Import/` | Lecture de l'archive Strava (`activities.csv`) et des fichiers GPX/TCX |
 | `src/Elevation/` | Dénivelé recalculé sur l'altitude du terrain (IGN en France, Open-Meteo ailleurs) |
+| `src/Geocoding/` | Ville du départ d'une sortie (IGN en France, Nominatim / OpenStreetMap ailleurs) |
 | `src/Http/` | Garde-fous des services publics appelés à l'import (délai, pannes, cadence) |
 | `src/Entity/`, `src/Repository/` | Activités, profil du coureur, courses officielles (base SQLite) |
 | `src/Settings/` | Clés d'accès saisies dans la page *Réglages* (fichier `settings.json`) |
@@ -139,16 +140,20 @@ le profil, les courses officielles et les ajustements du programme, non : sauveg
   - Service d'altimétrie de l'IGN (Géoplateforme, public, gratuit, sans clé) : altitude du
     terrain sous les positions GPS d'une trace, pour corriger le dénivelé. France seulement ;
     réponses gardées dans le dossier `elevation-cache` des données (un réimport ne le rappelle pas).
+  - Géocodage inverse de l'IGN (Géoplateforme, public, gratuit, sans clé) : commune du premier
+    point GPS d'une trace. France seulement ; réponses gardées dans le dossier `place-cache`.
   - API d'altitude d'Open-Meteo (public, gratuit pour un usage non commercial, sans clé) : altitude
     du terrain là où l'IGN n'en a pas (étranger, mer), modèle mondial Copernicus (maille de 90 m).
     Quota par minute : au-delà, les traces restantes sont complétées au prochain import.
+  - Nominatim / OpenStreetMap (public, gratuit, sans clé) : ville du départ hors de France ; au plus
+    un appel par seconde (charte d'utilisation). Réponses gardées dans le dossier `place-cache`.
   - L'API Strava n'est **pas** utilisée (payante depuis juin 2026, usage IA interdit).
 
 ## Flux
 
 1. L'utilisateur télécharge son archive Strava, ou laisse un outil tiers remplir un dossier de traces.
 2. L'import (page *Import* ou `app:import`) lit `activities.csv` et les traces `.fit`/`.gpx`/`.tcx`
-   (y compris `.gz`) : temps de passage, FC tenue et D+ recalculé sur le terrain (IGN).
+   (y compris `.gz`) : temps de passage, FC tenue, D+ recalculé sur le terrain (IGN, Open-Meteo hors de France), ville du départ (IGN, OpenStreetMap hors de France) et trace simplifiée pour la carte.
 3. Chaque activité est ajoutée ou mise à jour en base ; une sortie déjà connue n'est pas dupliquée.
 4. Pour un objectif, le calcul utilise les courses à pied des 12 dernières semaines.
 5. Sur demande, le résultat et l'historique sont envoyés au coach IA, qui renvoie un pourcentage
@@ -267,8 +272,11 @@ le profil, les courses officielles et les ajustements du programme, non : sauveg
   source (intervals.icu, fichier) ou du nom de la sortie : un nom contenant « trail » classe la
   course en Trail → renommer la sortie (dans Strava / intervals.icu) puis réimporter ou resynchroniser.
 - **« Aucune activité ne correspond à ces critères. »** (Activités) → critères trop restrictifs →
-  cliquer sur **Effacer**. La recherche par nom ignore la casse mais pas les accents
+  cliquer sur **Effacer**. La recherche par nom ou ville ignore la casse mais pas les accents
   (« seance » ne trouve pas « Séance »).
+- **Colonne « Ville » vide (« – »)** → sortie sans GPS (tapis, CSV seul), départ en mer, service
+  de géocodage injoignable lors de l'import, ou activité importée avant l'ajout de la ville →
+  relancer l'import de l'archive Strava (ou une synchro) : les villes manquantes sont complétées.
 - **Le nombre d'activités n'augmente pas après un import** → les sorties étaient déjà connues
   (« déjà connue(s) » dans le résumé) : comportement normal.
 
@@ -415,7 +423,7 @@ L'affichage suit le thème clair ou sombre du système.
 **Retrouver une sortie**
 
 1. Ouvrir [https://mystrava.ddev.site/activites](https://mystrava.ddev.site/activites).
-2. Saisir un ou plusieurs mots du nom (« cani », « club »…), et/ou choisir un type, une période,
+2. Saisir un ou plusieurs mots du nom ou de la ville (« cani », « club », « Brest »…), et/ou choisir un type, une période,
    une distance ou un D+ minimal.
 3. **Rechercher**. Changer « Trier par » pour voir par exemple les sorties avec le plus de
    dénivelé ; **Effacer** revient à la liste complète.

@@ -6,7 +6,7 @@
     <p class="breadcrumb"><a href="{{ path('activity_index') }}">← Activités</a></p>
     <div class="page-heading">
         <h1>{{ activity.name ?: activity.sport.label }}</h1>
-        <span class="muted">{{ activity.sport.label }} · {{ activity.startDate|date('d/m/Y à H:i') }}</span>
+        <span class="muted">{{ activity.sport.label }} · {{ activity.startDate|date('d/m/Y à H:i') }}{% if activity.city is not null %} · {{ activity.city }}{% endif %}</span>
     </div>
 
     <section class="stat-grid" aria-label="Résumé">

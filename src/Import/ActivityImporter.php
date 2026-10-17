@@ -7,9 +7,11 @@ namespace App\Import;
 use App\Elevation\ElevationCorrector;
 use App\Entity\Activity;
 use App\Enum\Sport;
+use App\Geocoding\CityFinder;
 use App\Import\Track\ParsedTrack;
 use App\Import\Track\RouteSimplifier;
 use App\Import\Track\SplitCalculator;
+use App\Import\Track\TrackPoint;
 use App\Repository\ActivityRepository;
 use App\Repository\UpsertOutcome;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -38,6 +40,7 @@ final class ActivityImporter
         private readonly TrackFileParser $trackParser,
         private readonly SplitCalculator $splitCalculator,
         private readonly ElevationCorrector $elevationCorrector,
+        private readonly CityFinder $geocoder,
         #[Autowire('%kernel.project_dir%')] private readonly string $projectDir,
         private readonly RouteSimplifier $routeSimplifier = new RouteSimplifier(),
     ) {
@@ -192,20 +195,28 @@ final class ActivityImporter
         $splits = Sport::Swim === $activity->sport ? [] : $this->splitCalculator->splits($ground ?? $track);
         $route = Sport::Swim === $activity->sport ? [] : $this->routeSimplifier->simplify($track->points);
 
-        if ($activity->replaceTrackData($splits, $this->splitCalculator->sustainedMaxHeartRate($track->points), $ground?->groundElevationGain, $route)) {
+        $start = $this->firstPosition($track);
+        $city = null === $start ? null : $this->geocoder->cityAt((float) $start->latitude, (float) $start->longitude);
+
+        if ($activity->replaceTrackData($splits, $this->splitCalculator->sustainedMaxHeartRate($track->points), $ground?->groundElevationGain, $route, $city)) {
             ++$result->withSplits;
         }
     }
 
     private function hasPosition(ParsedTrack $track): bool
     {
+        return null !== $this->firstPosition($track);
+    }
+
+    private function firstPosition(ParsedTrack $track): ?TrackPoint
+    {
         foreach ($track->points as $point) {
             if ($point->hasPosition()) {
-                return true;
+                return $point;
             }
         }
 
-        return false;
+        return null;
     }
 
     private function count(UpsertOutcome $outcome, ImportResult $result): void

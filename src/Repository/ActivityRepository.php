@@ -80,8 +80,8 @@ final class ActivityRepository extends ServiceEntityRepository
         $qb = $this->createQueryBuilder('a');
 
         foreach ($search->words as $i => $word) {
-            // LIKE ignore la casse (lettres sans accent) ; les jokers saisis sont pris littéralement.
-            $qb->andWhere(\sprintf("a.name LIKE :word%d ESCAPE '!'", $i))
+            // Nom ou commune. LIKE ignore la casse (lettres sans accent) ; les jokers saisis sont pris littéralement.
+            $qb->andWhere(\sprintf("a.name LIKE :word%1\$d ESCAPE '!' OR a.city LIKE :word%1\$d ESCAPE '!'", $i))
                 ->setParameter('word'.$i, '%'.addcslashes($word, '%_!').'%');
         }
         if ($search->allRuns) {

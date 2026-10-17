@@ -41,6 +41,10 @@ tournent aussi sur l'hôte. `ddev start` ne demande `sudo` qu'au tout premier d�
   (dossier de données, hors `cache:clear`) ; ancien format IGN (`null` = trace hors zone) encore lu.
   En test, tout client HTTP du conteneur répond 503 (`tests/Double/NoNetworkResponseFactory`) :
   les tests du D+ construisent `IgnAltimetry` / `OpenMeteoElevation` avec leur `MockHttpClient`.
+- Ville : commune du 1er point GPS (`src/Geocoding/CityFinder` : `IgnReverseGeocoder`, index
+  `parcel`, puis `NominatimReverseGeocoder` hors de France — 1 appel/s et User-Agent imposés par
+  la charte OSM, client `nominatim.client`), cache persistant `app.place_cache` par position arrondie à 3 décimales ;
+  posée par `replaceTrackData()`, jamais effacée si le service ne répond pas.
 - Carte : trace simplifiée (`RouteSimplifier`, 20 m, ≤ 2 000 points) dans `ActivityRoute` (table
   à part, OneToOne porté par `Activity` avec `orphanRemoval` : SQLite n'applique pas les clés
   étrangères), posée par `replaceTrackData()`. Allure par tronçon calculée en PHP
