@@ -13,7 +13,7 @@ use App\Repository\AthleteProfileRepository;
 use App\Repository\UpsertOutcome;
 
 /**
- * Synchronise les nouvelles séances depuis intervals.icu (montre → intervals.icu → MyStrava).
+ * Synchronise les nouvelles séances depuis intervals.icu (montre → intervals.icu → MyRuns).
  *
  * - Les séances arrivées dans intervals.icu par Strava sont ignorées : leur fichier n'est pas
  *   transmis par l'API (règles de Strava), et elles viennent de toute façon de la montre.

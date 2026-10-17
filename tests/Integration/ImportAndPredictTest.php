@@ -28,7 +28,7 @@ final class ImportAndPredictTest extends KernelTestCase
     protected function setUp(): void
     {
         self::bootKernel();
-        $this->workDir = sys_get_temp_dir().'/mystrava-test-'.bin2hex(random_bytes(4));
+        $this->workDir = sys_get_temp_dir().'/myruns-test-'.bin2hex(random_bytes(4));
     }
 
     protected function tearDown(): void

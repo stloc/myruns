@@ -30,7 +30,7 @@ final class GroundElevationTest extends KernelTestCase
 
     protected function setUp(): void
     {
-        $this->workDir = sys_get_temp_dir().'/mystrava-elevation-'.bin2hex(random_bytes(4));
+        $this->workDir = sys_get_temp_dir().'/myruns-elevation-'.bin2hex(random_bytes(4));
         (new Filesystem())->mkdir($this->workDir);
     }
 

@@ -1,4 +1,4 @@
-# MyStrava
+# MyRuns
 
 Importe vos activités Strava **sans l'API Strava** et prédit vos chances de réussir un objectif
 chrono, à la manière de Kiprun Pacer (« 55 % de réussir un 10 km en 45:00 le 15/12 »), avec une
@@ -19,7 +19,7 @@ Symfony AI 0.14 + Anthropic ; développement sous DDEV, application de bureau Ta
 ```bash
 ddev start                     # demande sudo la première fois (entrée /etc/hosts)
 ddev composer install
-ddev exec bin/console doctrine:migrations:migrate -n   # crée var/mystrava.db
+ddev exec bin/console doctrine:migrations:migrate -n   # crée var/myruns.db
 ```
 
 Clés d'API : page *Réglages* (`/reglages`, enregistrées dans `var/settings.json`) ou `.env.local`
@@ -27,7 +27,7 @@ Clés d'API : page *Réglages* (`/reglages`, enregistrées dans `var/settings.js
 variables d'environnement par `src/Settings/SettingsEnvVarLoader.php` : Symfony ne l'interroge que
 pour une variable vide.
 
-Données : `MYSTRAVA_DATA_DIR` (défaut `var/`) contient `mystrava.db`, `settings.json` et
+Données : `MYRUNS_DATA_DIR` (défaut `var/`) contient `myruns.db`, `settings.json` et
 `uploads/`. Tests (base `var/test.db`, données dans `var/test-data/`) :
 
 ```bash
@@ -119,8 +119,9 @@ bureau, qui n'écoute que sur `127.0.0.1`).
 Pour des utilisateurs sans DDEV ni Docker : un installeur Windows (NSIS, sans droits
 administrateur) qui embarque l'app Symfony et un PHP 8.4 officiel.
 
-- `desktop/src-tauri/src/main.rs` : au lancement, dossier de données `%APPDATA%\local.mystrava.desktop`
-  (`MYSTRAVA_DATA_DIR`, cache Symfony par version, `logs/`), migrations, `cache:warmup`, puis
+- `desktop/src-tauri/src/main.rs` : au lancement, dossier de données `%APPDATA%\local.myruns.desktop`
+  (`MYRUNS_DATA_DIR`, cache Symfony par version, `logs/` ; reprend une fois `local.mystrava.desktop`
+  et `mystrava.db` de l'ancien nom de l'app), migrations, `cache:warmup`, puis
   `php -S 127.0.0.1:<port libre> router.php` ; la fenêtre bascule sur l'app quand le port répond
   et PHP est arrêté à la fermeture. Les liens externes s'ouvrent dans le navigateur.
 - `desktop/php.ini` : extensions (`pdo_sqlite`, `intl`, `zip`, `curl`…), envois jusqu'à 2 Go ;
@@ -135,7 +136,7 @@ administrateur) qui embarque l'app Symfony et un PHP 8.4 officiel.
 git tag v0.2.0 && git push origin v0.2.0      # puis publier la release brouillon sur GitHub
 ```
 
-Essai local sous Linux (PHP du poste avec `pdo_sqlite`, ou `MYSTRAVA_PHP=/chemin/php`) :
+Essai local sous Linux (PHP du poste avec `pdo_sqlite`, ou `MYRUNS_PHP=/chemin/php`) :
 
 ```bash
 COMPOSER_HOME="$(mktemp -d)" bin/prepare-desktop-app
@@ -215,7 +216,7 @@ dernier objectif enregistré et de la forme du moment :
 | `src/Ai/` | Coach IA (sortie structurée `CoachAnalysis`) |
 | `src/Controller/`, `src/Form/`, `templates/`, `assets/` | Dashboard web |
 | `src/Chart/ColumnChart.php` | Géométrie de l'histogramme SVG (rendu sans JS) |
-| `src/Tui/MyStravaApp.php` | Interface terminal |
+| `src/Tui/MyRunsApp.php` | Interface terminal |
 | `desktop/` | Application de bureau Windows (Tauri) |
 
 ## Qualité

@@ -1,4 +1,4 @@
-// Application de bureau MyStrava : une fenêtre qui affiche l'app Symfony servie par un PHP embarqué.
+// Application de bureau MyRuns : une fenêtre qui affiche l'app Symfony servie par un PHP embarqué.
 //
 // Au lancement : migrations de la base (dossier de données de l'utilisateur), préchauffage du cache,
 // serveur web interne de PHP sur un port libre de 127.0.0.1, puis la fenêtre bascule sur l'app.
@@ -26,7 +26,7 @@ fn main() {
         .manage(PhpServer(Mutex::new(None)))
         .setup(|app| {
             let window = WebviewWindowBuilder::new(app, "main", WebviewUrl::App("index.html".into()))
-                .title("MyStrava")
+                .title("MyRuns")
                 .inner_size(1280.0, 860.0)
                 .min_inner_size(800.0, 600.0)
                 .on_navigation(|url| {
@@ -50,7 +50,7 @@ fn main() {
             Ok(())
         })
         .build(tauri::generate_context!())
-        .expect("impossible de démarrer MyStrava");
+        .expect("impossible de démarrer MyRuns");
 
     app.run(|handle, event| {
         if let RunEvent::Exit = event {
@@ -67,6 +67,7 @@ fn start(handle: &AppHandle) -> Result<Url, String> {
     let caches = data_dir.join("cache");
     let version = handle.package_info().version.to_string();
 
+    adopt_mystrava_data(&data_dir)?;
     fs::create_dir_all(&logs).map_err(|e| format!("Dossier {} : {e}", logs.display()))?;
     remove_old_caches(&caches, &version);
 
@@ -74,7 +75,7 @@ fn start(handle: &AppHandle) -> Result<Url, String> {
     let env = [
         ("APP_ENV", "prod".to_string()),
         ("APP_DEBUG", "0".to_string()),
-        ("MYSTRAVA_DATA_DIR", path_string(&data_dir)),
+        ("MYRUNS_DATA_DIR", path_string(&data_dir)),
         // Cache par version : une mise à jour repart d'un cache neuf.
         ("APP_CACHE_DIR", path_string(&caches.join(&version))),
         ("APP_LOG_DIR", path_string(&logs)),
@@ -97,7 +98,7 @@ fn start(handle: &AppHandle) -> Result<Url, String> {
     Url::parse(&format!("http://{address}/")).map_err(|e| e.to_string())
 }
 
-/// PHP embarqué (Windows), sinon celui de MYSTRAVA_PHP ou du PATH (développement).
+/// PHP embarqué (Windows), sinon celui de MYRUNS_PHP ou du PATH (développement).
 struct Php {
     exe: PathBuf,
     args: Vec<String>,
@@ -108,7 +109,7 @@ impl Php {
         let dir = resources.join("php");
         let exe = dir.join(if cfg!(windows) { "php.exe" } else { "php" });
         if !exe.is_file() {
-            let exe = std::env::var_os("MYSTRAVA_PHP").map_or_else(|| PathBuf::from("php"), PathBuf::from);
+            let exe = std::env::var_os("MYRUNS_PHP").map_or_else(|| PathBuf::from("php"), PathBuf::from);
             return Self { exe, args: Vec::new() };
         }
 
@@ -189,6 +190,24 @@ fn wait_until_listening(port: u16) -> Result<(), String> {
     }
 
     Err("Le serveur PHP ne répond pas. Détails : logs/server.log dans le dossier de données.".to_string())
+}
+
+/// L'application s'appelait MyStrava : on reprend son dossier de données et sa base, une seule fois.
+fn adopt_mystrava_data(data_dir: &Path) -> Result<(), String> {
+    let old_dir = data_dir.with_file_name("local.mystrava.desktop");
+    if !data_dir.exists() && old_dir.is_dir() {
+        fs::rename(&old_dir, data_dir).map_err(|e| format!("Dossier {} : {e}", old_dir.display()))?;
+        // Le cache compilé pointe encore vers l'ancien dossier.
+        let _ = fs::remove_dir_all(data_dir.join("cache"));
+    }
+
+    let old_db = data_dir.join("mystrava.db");
+    let db = data_dir.join("myruns.db");
+    if old_db.is_file() && !db.exists() {
+        fs::rename(&old_db, &db).map_err(|e| format!("Base {} : {e}", old_db.display()))?;
+    }
+
+    Ok(())
 }
 
 fn remove_old_caches(caches: &Path, version: &str) {

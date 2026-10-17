@@ -31,7 +31,7 @@ final class ProfileImpactTest extends KernelTestCase
         self::bootKernel();
         $this->now = new \DateTimeImmutable();
 
-        $directory = sys_get_temp_dir().'/mystrava-profile-'.bin2hex(random_bytes(4));
+        $directory = sys_get_temp_dir().'/myruns-profile-'.bin2hex(random_bytes(4));
         (new Filesystem())->mkdir($directory);
 
         $path = $directory.'/activities.csv';
@@ -142,7 +142,7 @@ final class ProfileImpactTest extends KernelTestCase
 
     private function importRun(int $id, \DateTimeImmutable $date): void
     {
-        $directory = sys_get_temp_dir().'/mystrava-profile-'.bin2hex(random_bytes(4));
+        $directory = sys_get_temp_dir().'/myruns-profile-'.bin2hex(random_bytes(4));
         (new Filesystem())->mkdir($directory);
         $handle = fopen($directory.'/activities.csv', 'w');
         \assert(false !== $handle);

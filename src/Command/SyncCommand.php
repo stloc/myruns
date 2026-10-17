@@ -13,7 +13,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Contracts\HttpClient\Exception\ExceptionInterface as HttpExceptionInterface;
 
-#[AsCommand(name: 'app:sync', description: 'Récupère les nouvelles séances depuis intervals.icu (montre → intervals.icu → MyStrava)')]
+#[AsCommand(name: 'app:sync', description: 'Récupère les nouvelles séances depuis intervals.icu (montre → intervals.icu → MyRuns)')]
 final class SyncCommand extends Command
 {
     public function __construct(private readonly IntervalsSynchronizer $synchronizer)

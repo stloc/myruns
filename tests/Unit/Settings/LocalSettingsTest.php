@@ -15,7 +15,7 @@ final class LocalSettingsTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->dir = sys_get_temp_dir().'/mystrava-settings-'.bin2hex(random_bytes(4));
+        $this->dir = sys_get_temp_dir().'/myruns-settings-'.bin2hex(random_bytes(4));
     }
 
     protected function tearDown(): void
@@ -26,7 +26,7 @@ final class LocalSettingsTest extends TestCase
     public function testUnresolvedDataDirIsNeverWritten(): void
     {
         // Nom de variable reçu pendant la compilation du conteneur, avant résolution.
-        $placeholder = 'env_c93fade69c9d956b_default_app_default_data_dir_MYSTRAVA_DATA_DIR_'.bin2hex(random_bytes(4));
+        $placeholder = 'env_c93fade69c9d956b_default_app_default_data_dir_MYRUNS_DATA_DIR_'.bin2hex(random_bytes(4));
 
         $vars = new SettingsEnvVarLoader(new LocalSettings($placeholder))->loadEnvVars();
 

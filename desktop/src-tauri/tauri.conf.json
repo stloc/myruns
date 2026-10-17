@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "MyStrava",
+  "productName": "MyRuns",
   "version": "0.1.0",
-  "identifier": "local.mystrava.desktop",
+  "identifier": "local.myruns.desktop",
   "build": {
     "frontendDist": "../ui"
   },

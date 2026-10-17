@@ -1,4 +1,4 @@
-# CLAUDE.md — MyStrava
+# CLAUDE.md — MyRuns
 
 Application personnelle : import d'activités Strava (export de compte ZIP, dossiers GPX/TCX),
 dashboard web, interface terminal et application de bureau Windows (Tauri), prédiction de
@@ -49,7 +49,7 @@ tournent aussi sur l'hôte. `ddev start` ne demande `sudo` qu'au tout premier d�
   construit depuis `AthleteProfile::lastGoal()` (dernier objectif calculé sur `/objectif`), réglages
   sur le profil (`planSessionsPerWeek`, `clubWeekday`, `clubTime`) et ajustements par semaine
   (`TrainingWeekOverride`, ligne supprimée quand elle revient au réglage général).
-- Base **SQLite** : chemin `%app.data_dir%/mystrava.db` (`MYSTRAVA_DATA_DIR`, défaut `var/`).
+- Base **SQLite** : chemin `%app.data_dir%/myruns.db` (`MYRUNS_DATA_DIR`, défaut `var/`).
   SQLite compare les dates comme du texte et oublie le fuseau : `Activity::$startDate` utilise le
   type `utc_datetime_immutable` (`src/Doctrine/`), les paramètres DQL de date se lient avec leur
   type (`UtcDateTimeImmutableType::NAME`, `Types::DATE_IMMUTABLE`) ; aucune fonction SQL propre à
@@ -70,6 +70,9 @@ tournent aussi sur l'hôte. `ddev start` ne demande `sudo` qu'au tout premier d�
   est `tests/Double/FakeCoachPlatform` (aucun appel réseau).
 - Front : couleurs uniquement en variables dans `assets/styles/app.css`, mode clair + sombre
   (`prefers-color-scheme`) obligatoires.
+- Nom **MyRuns** (ex-MyStrava ; le dépôt et le projet DDEV `mystrava.ddev.site` gardent l'ancien
+  nom). Pas de charte Strava : accent sarcelle, jamais l'orange Strava. L'app de bureau reprend une
+  fois les données de l'ancien nom (`adopt_mystrava_data()` dans `desktop/src-tauri/src/main.rs`).
 - Widgets TUI : `SelectListWidget` tronque le libellé à 30 colonnes → métriques dans `description`.
 - Pas d'authentification (usage local : DDEV, ou app de bureau sur `127.0.0.1`) : à ajouter
   avant toute exposition.

@@ -8,9 +8,9 @@
 # https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
 parameters:
     # Données de l'utilisateur (base SQLite, réglages, fichiers importés) : dossier fourni par l'app
-    # de bureau (MYSTRAVA_DATA_DIR), sinon var/ du projet.
+    # de bureau (MYRUNS_DATA_DIR), sinon var/ du projet.
     app.default_data_dir: '%kernel.project_dir%/var'
-    app.data_dir: '%env(default:app.default_data_dir:MYSTRAVA_DATA_DIR)%'
+    app.data_dir: '%env(default:app.default_data_dir:MYRUNS_DATA_DIR)%'
 
 services:
     # default configuration for services in *this* file

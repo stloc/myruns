@@ -35,7 +35,7 @@ use Symfony\Component\Tui\Widget\TextWidget;
 /**
  * Interface terminal : tableau de bord, liste des activités, import et prédiction d'objectif.
  */
-final class MyStravaApp
+final class MyRunsApp
 {
     private const GOAL_STEPS = [
         'distance' => 'Distance (5k, 10, 21.1, semi, marathon) : ',
@@ -77,7 +77,7 @@ final class MyStravaApp
             }
         });
 
-        $this->header = $this->styled(new TextWidget(), 'bold text-orange-500');
+        $this->header = $this->styled(new TextWidget(), 'bold text-teal-500');
         $this->fitness = $this->styled(new TextWidget(), 'text-sky-300 border border-rounded border-slate-600 px-1');
         $this->body = new ContainerWidget();
         $this->status = $this->styled(new TextWidget(), 'text-amber-400');
@@ -99,7 +99,7 @@ final class MyStravaApp
     {
         $last = $this->activities->findMostRecent();
         $this->header->setText(\sprintf(
-            'MyStrava · %d activité(s)%s',
+            'MyRuns · %d activité(s)%s',
             $this->activities->count(),
             null !== $last ? ' · dernière le '.$last->startDate->format('d/m/Y') : ' · aucune donnée, commencez par « Importer »',
         ));

@@ -118,7 +118,7 @@ final class LocalSettings
     /**
      * Pendant la compilation du conteneur (lint:container, cache:warmup), Symfony peut appeler le
      * chargeur de variables avant de résoudre %app.data_dir% : on reçoit alors un nom de variable
-     * (« env_…_MYSTRAVA_DATA_DIR_… »), relatif, qui créerait un dossier parasite dans le projet.
+     * (« env_…_MYRUNS_DATA_DIR_… »), relatif, qui créerait un dossier parasite dans le projet.
      * Le vrai dossier de données est toujours un chemin absolu.
      */
     private function hasDataDir(): bool

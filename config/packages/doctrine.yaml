@@ -1,7 +1,7 @@
 doctrine:
     dbal:
         driver: pdo_sqlite
-        path: '%app.data_dir%/mystrava.db'
+        path: '%app.data_dir%/myruns.db'
         types:
             utc_datetime_immutable: App\Doctrine\UtcDateTimeImmutableType
 

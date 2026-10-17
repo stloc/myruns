@@ -2,14 +2,14 @@
 
 ## Introduction
 
-MyStrava récupère les activités sportives enregistrées sur Strava et estime les chances de réussir
+MyRuns récupère les activités sportives enregistrées sur Strava et estime les chances de réussir
 un objectif de course, par exemple « 55 % de chances de courir 10 km en 45 minutes le 15 décembre ».
-Elle s'utilise comme une application Windows (fenêtre MyStrava), depuis un navigateur sur le poste
+Elle s'utilise comme une application Windows (fenêtre MyRuns), depuis un navigateur sur le poste
 de développement, ou depuis un terminal.
 
 | Environnement | Adresse |
 |---|---|
-| Application Windows | Menu Démarrer → **MyStrava** (installeur publié sur la page *Releases* du dépôt GitHub) |
+| Application Windows | Menu Démarrer → **MyRuns** (installeur publié sur la page *Releases* du dépôt GitHub) |
 | Poste de développement (DDEV) | [https://mystrava.ddev.site](https://mystrava.ddev.site) |
 | Interface terminal | `ddev exec bin/console tui`, dans le dossier du projet |
 
@@ -18,7 +18,7 @@ utilisateurs.
 
 ## Objet / Contexte
 
-L'API Strava n'est pas utilisée. MyStrava lit l'**archive officielle** que Strava envoie par e-mail
+L'API Strava n'est pas utilisée. MyRuns lit l'**archive officielle** que Strava envoie par e-mail
 sur demande, ainsi que des dossiers de traces GPS (GPX/TCX) remplis par des outils tiers
 (Tapiriik, extension de navigateur).
 
@@ -61,7 +61,7 @@ peut ensuite commenter ce résultat et proposer des conseils d'entraînement.
 flowchart LR
     A["Archive Strava<br/>export_XXXX.zip"] --> I["Import"]
     B["Dossier GPX / TCX<br/>Tapiriik, extension"] --> I
-    I --> S[("Base SQLite<br/>mystrava.db")]
+    I --> S[("Base SQLite<br/>myruns.db")]
     S --> P["Calcul de forme<br/>et probabilité"]
     P --> W["Tableau de bord web"]
     P --> T["Interface terminal"]
@@ -76,7 +76,7 @@ flowchart LR
 - Application Windows : fenêtre Tauri (moteur WebView2 de Windows) qui lance un PHP 8.4 embarqué
   (serveur web interne de PHP sur `127.0.0.1`, port choisi au démarrage) et l'arrête à la fermeture
 - Poste de développement : servi par DDEV (nginx + PHP-FPM)
-- Base SQLite (un fichier `mystrava.db` par installation), Doctrine ORM
+- Base SQLite (un fichier `myruns.db` par installation), Doctrine ORM
 - Pages web en Twig, sans framework JavaScript ; graphiques dessinés côté serveur
 - Composant `symfony/tui` (expérimental) pour l'interface terminal
 - Symfony AI 0.14 avec la plateforme Anthropic pour le coach IA
@@ -101,7 +101,7 @@ flowchart LR
   - `STRAVA_EXPORT_PATH` : dossier importé par défaut (défaut `imports`, relatif au projet)
   - `INTERVALS_API_KEY`, `INTERVALS_ATHLETE_ID` : synchro intervals.icu (clé en bas de la page
     Paramètres d'intervals.icu ; identifiant vide = propriétaire de la clé)
-  - `MYSTRAVA_DATA_DIR` : dossier des données (défaut `var/` du projet)
+  - `MYRUNS_DATA_DIR` : dossier des données (défaut `var/` du projet)
 - Tests : `ddev exec vendor/bin/phpunit` (base `var/test.db`, l'IA est simulée).
 - Application de bureau : `bin/prepare-desktop-app` (prépare `desktop/build/app`), puis
   `cargo tauri dev` dans `desktop/src-tauri` (PHP du poste, avec l'extension `pdo_sqlite`).
@@ -109,8 +109,8 @@ flowchart LR
 
 ## Base de données
 
-SQLite : un fichier `mystrava.db` dans le dossier des données (application Windows : voir
-*Installation locale* ; développement : `var/mystrava.db`, tests : `var/test.db`).
+SQLite : un fichier `myruns.db` dans le dossier des données (application Windows : voir
+*Installation locale* ; développement : `var/myruns.db`, tests : `var/test.db`).
 
 | Table | Contenu |
 |---|---|
@@ -123,7 +123,7 @@ SQLite : un fichier `mystrava.db` dans le dossier des données (application Wind
 Le schéma est géré par les migrations Doctrine (`migrations/`), appliquées automatiquement à
 chaque ouverture de l'application Windows. Les activités se reconstruisent par un nouvel import ;
 le profil, les courses officielles et les ajustements du programme, non : sauvegarder
-`mystrava.db`.
+`myruns.db`.
 
 # Interfaces / dépendances
 
@@ -156,7 +156,7 @@ le profil, les courses officielles et les ajustements du programme, non : sauveg
 
 | Environnement | Accès |
 |---|---|
-| Application Windows | Menu Démarrer → **MyStrava** — pas de connexion demandée ; mêmes menus que ci-dessous |
+| Application Windows | Menu Démarrer → **MyRuns** — pas de connexion demandée ; mêmes menus que ci-dessous |
 | Poste de développement (DDEV) | [https://mystrava.ddev.site](https://mystrava.ddev.site) — pas de connexion demandée |
 
 | Menu | Lien | Contenu |
@@ -181,11 +181,11 @@ le profil, les courses officielles et les ajustements du programme, non : sauveg
 
 - **« Windows a protégé votre ordinateur » à l'installation** → installeur non signé (normal) →
   *Informations complémentaires* → *Exécuter quand même*.
-- **Fenêtre « MyStrava n'a pas pu démarrer » avec « … a échoué. Détails : … »** → la mise à jour
+- **Fenêtre « MyRuns n'a pas pu démarrer » avec « … a échoué. Détails : … »** → la mise à jour
   de la base ou le démarrage a échoué → envoyer au développeur les fichiers du dossier `logs`
   indiqué dans le message (dossier des données, voir *Installation locale*).
 - **« Le serveur PHP ne répond pas. »** → antivirus qui bloque `php.exe`, ou PC très lent →
-  autoriser MyStrava dans l'antivirus, relancer ; sinon transmettre `logs\server.log`.
+  autoriser MyRuns dans l'antivirus, relancer ; sinon transmettre `logs\server.log`.
 - **La fenêtre reste sur « Démarrage… »** → première ouverture après installation ou mise à jour
   (préparation du cache, jusqu'à une minute) → patienter ; au-delà, fermer et rouvrir.
 - **Le site ne répond pas (développement)** → DDEV arrêté → `ddev start` dans le dossier du projet.
@@ -263,7 +263,7 @@ le profil, les courses officielles et les ajustements du programme, non : sauveg
 
 ## Logs
 
-- Application Windows : dossier `logs` des données (`%APPDATA%\local.mystrava.desktop\logs`) —
+- Application Windows : dossier `logs` des données (`%APPDATA%\local.myruns.desktop\logs`) —
   `migrations.log` (mise à jour de la base), `cache.log`, `server.log` (erreurs PHP).
 - Développement : `ddev logs` (conteneur web), dont « Analyse IA en échec » pour le coach IA.
 - Commandes : résultat affiché à l'écran ; en tâche planifiée, rediriger la sortie vers un fichier.
@@ -275,7 +275,7 @@ Publier une nouvelle version de l'application Windows (développeur) :
 1. Vérifier la chaîne qualité et les tests (voir `README.md`).
 2. Créer et pousser un tag : `git tag v0.2.0 && git push origin v0.2.0`.
 3. GitHub Actions (*Application de bureau*) fabrique l'installeur
-   `MyStrava_0.2.0_x64-setup.exe` et l'attache à une release **brouillon**.
+   `MyRuns_0.2.0_x64-setup.exe` et l'attache à une release **brouillon**.
 4. Sur la page *Releases* du dépôt, relire puis **Publier** la release et envoyer le lien.
 
 Le PHP Windows embarqué est figé dans `.github/workflows/desktop.yml` (`PHP_WINDOWS_VERSION` et
@@ -285,17 +285,20 @@ son empreinte `PHP_WINDOWS_SHA256`, à reprendre de windows.php.net lors d'une m
 
 **Application Windows** (Windows 10 ou 11, sans droits administrateur) :
 
-1. Télécharger `MyStrava_x.y.z_x64-setup.exe` depuis le lien de la release.
+1. Télécharger `MyRuns_x.y.z_x64-setup.exe` depuis le lien de la release.
 2. Le lancer ; si Windows affiche « Windows a protégé votre ordinateur » : *Informations
    complémentaires* → *Exécuter quand même*.
-3. Ouvrir **MyStrava** depuis le menu Démarrer, puis *Réglages* pour saisir ses clés.
+3. Ouvrir **MyRuns** depuis le menu Démarrer, puis *Réglages* pour saisir ses clés.
 
-Données de l'utilisateur : `%APPDATA%\local.mystrava.desktop` (coller ce chemin dans la barre
-d'adresse de l'Explorateur) — `mystrava.db` (base), `settings.json` (clés), `logs`.
+Données de l'utilisateur : `%APPDATA%\local.myruns.desktop` (coller ce chemin dans la barre
+d'adresse de l'Explorateur) — `myruns.db` (base), `settings.json` (clés), `logs`.
 
-- **Sauvegarder** : MyStrava fermé, copier `mystrava.db` et `settings.json`.
+- **Sauvegarder** : MyRuns fermé, copier `myruns.db` et `settings.json`.
 - **Mettre à jour** : lancer le nouvel installeur ; les données sont conservées.
-- **Désinstaller** : Paramètres Windows → Applications → MyStrava. Le dossier des données reste
+- **Ancienne version « MyStrava »** : au premier lancement, MyRuns reprend son dossier de données
+  (`local.mystrava.desktop`) et sa base (`mystrava.db`). Désinstaller ensuite MyStrava
+  (Paramètres Windows → Applications) : il n'a plus de données.
+- **Désinstaller** : Paramètres Windows → Applications → MyRuns. Le dossier des données reste
   en place (le supprimer à la main pour tout effacer).
 
 **Poste de développement** :
@@ -326,7 +329,7 @@ réseau sans en ajouter une.
 
 ## Formation
 
-Pas de formation nécessaire. Dans la fenêtre MyStrava (ou le navigateur), tout passe par le menu
+Pas de formation nécessaire. Dans la fenêtre MyRuns (ou le navigateur), tout passe par le menu
 du haut. Dans le terminal :
 flèches pour naviguer, Entrée pour valider, Échap pour revenir, Ctrl+C pour quitter.
 
@@ -367,12 +370,12 @@ L'affichage suit le thème clair ou sombre du système.
 
 ## Tutoriels
 
-**Installer MyStrava sous Windows**
+**Installer MyRuns sous Windows**
 
-1. Ouvrir le lien de la release reçu, télécharger `MyStrava_x.y.z_x64-setup.exe`.
+1. Ouvrir le lien de la release reçu, télécharger `MyRuns_x.y.z_x64-setup.exe`.
 2. Double-cliquer dessus. Si « Windows a protégé votre ordinateur » s'affiche : *Informations
    complémentaires* → *Exécuter quand même*. Suivre l'installation.
-3. Ouvrir **MyStrava** (menu Démarrer). La première ouverture prend quelques secondes.
+3. Ouvrir **MyRuns** (menu Démarrer). La première ouverture prend quelques secondes.
 4. Menu **Réglages** : coller la clé intervals.icu (et, si vous avez un compte Anthropic, la clé
    Anthropic), puis **Enregistrer**.
 5. Menu **Import** : importer son archive Strava (voir ci-dessous), puis **Synchroniser

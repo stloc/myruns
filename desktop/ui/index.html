@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="color-scheme" content="light dark">
-    <title>MyStrava</title>
+    <title>MyRuns</title>
     <style>
         :root {
             --page-bg: #f9f9f7;
             --text: #0b0b0b;
             --text-muted: #6b6a65;
-            --accent: #c2410c;
+            --accent: #0f766e;
             --error-bg: #fde4e4;
             --error-text: #a11d1d;
         }
@@ -18,7 +18,7 @@
                 --page-bg: #0d0d0d;
                 --text: #f0efec;
                 --text-muted: #a3a29b;
-                --accent: #fb923c;
+                --accent: #2dd4bf;
                 --error-bg: #2f1212;
                 --error-text: #f08a8a;
             }
@@ -40,14 +40,14 @@
 </head>
 <body>
     <main>
-        <h1>MyStrava</h1>
+        <h1>MyRuns</h1>
         <p id="status">Démarrage… (la première ouverture prend quelques secondes)</p>
     </main>
     <script>
         window.showError = function (message) {
             var status = document.getElementById('status');
             status.className = 'error';
-            status.textContent = 'MyStrava n\'a pas pu démarrer.\n\n' + message;
+            status.textContent = 'MyRuns n\'a pas pu démarrer.\n\n' + message;
         };
     </script>
 </body>

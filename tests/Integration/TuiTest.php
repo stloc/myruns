@@ -6,7 +6,7 @@ namespace App\Tests\Integration;
 
 use App\Import\ActivityImporter;
 use App\Tests\StravaExportFactory;
-use App\Tui\MyStravaApp;
+use App\Tui\MyRunsApp;
 use Revolt\EventLoop;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Filesystem\Filesystem;
@@ -25,7 +25,7 @@ final class TuiTest extends KernelTestCase
     public function testGoalWizardDisplaysProbability(): void
     {
         self::bootKernel();
-        $workDir = sys_get_temp_dir().'/mystrava-tui-'.bin2hex(random_bytes(4));
+        $workDir = sys_get_temp_dir().'/myruns-tui-'.bin2hex(random_bytes(4));
         $filesystem = new Filesystem();
         self::getContainer()->get(ActivityImporter::class)->import(\dirname(StravaExportFactory::create($workDir)));
         $filesystem->remove($workDir);
@@ -66,9 +66,9 @@ final class TuiTest extends KernelTestCase
             $delay += 0.15;
         }
 
-        self::getContainer()->get(MyStravaApp::class)->run($terminal);
+        self::getContainer()->get(MyRunsApp::class)->run($terminal);
 
-        self::assertStringContainsString('MyStrava · 36 activité(s)', $screens['menu']);
+        self::assertStringContainsString('MyRuns · 36 activité(s)', $screens['menu']);
         self::assertStringContainsString('Objectif & prédiction', $screens['menu']);
         self::assertStringContainsString('Potentiel actuel', $screens['menu']);
         self::assertStringContainsString('Séance seuil', $screens['activities']);

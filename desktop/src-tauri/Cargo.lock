@@ -2064,7 +2064,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "mystrava-desktop"
+name = "myruns-desktop"
 version = "0.1.0"
 dependencies = [
  "serde_json",

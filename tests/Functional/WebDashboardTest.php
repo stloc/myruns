@@ -22,7 +22,7 @@ final class WebDashboardTest extends WebTestCase
     protected function setUp(): void
     {
         $this->client = static::createClient();
-        $this->workDir = sys_get_temp_dir().'/mystrava-web-'.bin2hex(random_bytes(4));
+        $this->workDir = sys_get_temp_dir().'/myruns-web-'.bin2hex(random_bytes(4));
     }
 
     protected function tearDown(): void
