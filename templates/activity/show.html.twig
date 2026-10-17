@@ -37,8 +37,8 @@
             <span class="stat-label">Dénivelé positif</span>
             <span class="stat-value">{{ activity.effectiveElevationGain is not null ? activity.effectiveElevationGain|number_format(0, ',', ' ') ~ ' m' : '–' }}</span>
             {% if activity.groundElevationGain is not null %}
-                <span class="stat-detail">
-                    terrain IGN
+                <span class="stat-detail" title="Recalculé sur l'altitude du terrain : IGN en France, Copernicus (Open-Meteo) ailleurs">
+                    altitude du terrain
                     {%- if activity.elevationGain is not null %} · enregistré {{ activity.elevationGain|number_format(0, ',', ' ') }} m{% endif %}
                 </span>
             {% endif %}

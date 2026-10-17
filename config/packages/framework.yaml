@@ -19,6 +19,10 @@ framework:
             ign.client:
                 base_uri: 'https://data.geopf.fr'
                 timeout: 20
+            # Altitude du terrain hors de France (Open-Meteo, modèle Copernicus), service public sans clé.
+            openmeteo.client:
+                base_uri: 'https://api.open-meteo.com'
+                timeout: 20
 
 when@test:
     framework:

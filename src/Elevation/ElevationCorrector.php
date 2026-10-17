@@ -13,20 +13,27 @@ use App\Import\Track\TrackPoint;
  *
  * Réglages calibrés sur des sorties en Bretagne dont Strava avait corrigé le D+ :
  * un point tous les 10 m, moyenne glissante sur 5 points, seuil de 1 m entre deux paliers.
+ *
+ * Altitudes de l'IGN (France, précision métrique) ; les points qu'il ne couvre pas (étranger,
+ * mer) sont complétés par Open-Meteo (monde entier, maille de 90 m).
  */
 final class ElevationCorrector
 {
     public const ELEVATION_NOISE = 1.0;
     private const SAMPLE_METERS = 10.0;
     private const SMOOTHING_RADIUS = 2;
+    /** Hors zone IGN, un échantillon sur 5 (tous les 50 m) est demandé à Open-Meteo, maille de 90 m. */
+    private const WORLDWIDE_STEP = 5;
 
-    public function __construct(private readonly IgnAltimetry $altimetry)
-    {
+    public function __construct(
+        private readonly IgnAltimetry $altimetry,
+        private readonly OpenMeteoElevation $worldwide,
+    ) {
     }
 
     /**
      * @return ParsedTrack|null la trace avec l'altitude du terrain, ou null si elle est impossible
-     *                          à obtenir (pas de GPS, hors de France, service indisponible)
+     *                          à obtenir (pas de GPS, service indisponible)
      */
     public function correct(ParsedTrack $track): ?ParsedTrack
     {
@@ -35,7 +42,8 @@ final class ElevationCorrector
             return null;
         }
 
-        $elevations = $this->altimetry->elevations(array_map(static fn (TrackPoint $p): array => [(float) $p->latitude, (float) $p->longitude], $samples));
+        $coordinates = array_map(static fn (TrackPoint $p): array => [(float) $p->latitude, (float) $p->longitude], $samples);
+        $elevations = $this->elevations($coordinates);
         if (null === $elevations) {
             return null;
         }
@@ -45,6 +53,95 @@ final class ElevationCorrector
         $points = array_map(static fn (TrackPoint $p): TrackPoint => $p->withAltitude(self::interpolate($distances, $elevations, $p->distanceMeters)), $track->points);
 
         return new ParsedTrack($track->activity, $points, $track->laps, round(self::gain($elevations), 1));
+    }
+
+    /**
+     * @param list<array{0: float, 1: float}> $coordinates
+     *
+     * @return list<float>|null
+     */
+    private function elevations(array $coordinates): ?array
+    {
+        $elevations = $this->altimetry->elevations($coordinates);
+        if (null === $elevations) {
+            return null;
+        }
+
+        $missing = array_keys(array_filter($elevations, static fn (?float $elevation): bool => null === $elevation));
+        if ([] !== $missing) {
+            $filled = $this->worldwideElevations($coordinates, $missing);
+            if (null === $filled) {
+                return null;
+            }
+            $elevations = array_replace($elevations, $filled);
+        }
+
+        $complete = [];
+        foreach ($elevations as $i => $elevation) {
+            if (null === $elevation) {
+                return null;
+            }
+            $complete[] = $elevation;
+        }
+
+        return $complete;
+    }
+
+    /**
+     * Altitudes Open-Meteo des échantillons hors zone IGN. Le modèle mondial a une maille de 90 m :
+     * un échantillon sur WORLDWIDE_STEP est demandé (moins d'appels, quota du service), les autres
+     * sont interpolés, sans jamais franchir une portion couverte par l'IGN.
+     *
+     * @param list<array{0: float, 1: float}> $coordinates
+     * @param list<int>                       $missing     indices croissants des échantillons sans altitude IGN
+     *
+     * @return array<int, float>|null altitude de chaque indice manquant
+     */
+    private function worldwideElevations(array $coordinates, array $missing): ?array
+    {
+        // Portions d'indices consécutifs ; on demande la 1re, chaque WORLDWIDE_STEP-ième et la dernière.
+        $runs = [];
+        foreach ($missing as $i) {
+            $last = array_key_last($runs);
+            if (null !== $last && end($runs[$last]) === $i - 1) {
+                $runs[$last][] = $i;
+            } else {
+                $runs[] = [$i];
+            }
+        }
+        $queried = [];
+        foreach ($runs as $run) {
+            foreach ($run as $k => $i) {
+                if (0 === $k % self::WORLDWIDE_STEP || $k === \count($run) - 1) {
+                    $queried[] = $i;
+                }
+            }
+        }
+
+        $values = $this->worldwide->elevations(array_map(static fn (int $i): array => $coordinates[$i], $queried));
+        if (null === $values || \count($values) !== \count($queried)) {
+            return null;
+        }
+
+        $known = array_combine($queried, $values);
+        $filled = [];
+        foreach ($runs as $run) {
+            $from = $run[0];
+            foreach ($run as $i) {
+                if (isset($known[$i])) {
+                    $from = $i;
+                    $filled[$i] = $known[$i];
+                    continue;
+                }
+                $to = $from + 1;
+                while (!isset($known[$to])) {
+                    ++$to;
+                }
+                $filled[$i] = $known[$from] + ($known[$to] - $known[$from]) * ($i - $from) / ($to - $from);
+            }
+        }
+
+        return $filled;
     }
 
     /**

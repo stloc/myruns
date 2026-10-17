@@ -44,7 +44,8 @@ peut ensuite commenter ce résultat et proposer des conseils d'entraînement.
 | Répertoire | Rôle |
 |---|---|
 | `src/Import/` | Lecture de l'archive Strava (`activities.csv`) et des fichiers GPX/TCX |
-| `src/Elevation/` | Dénivelé recalculé sur l'altitude du terrain (service d'altimétrie de l'IGN) |
+| `src/Elevation/` | Dénivelé recalculé sur l'altitude du terrain (IGN en France, Open-Meteo ailleurs) |
+| `src/Http/` | Garde-fous des services publics appelés à l'import (délai, pannes, cadence) |
 | `src/Entity/`, `src/Repository/` | Activités, profil du coureur, courses officielles (base SQLite) |
 | `src/Settings/` | Clés d'accès saisies dans la page *Réglages* (fichier `settings.json`) |
 | `src/Prediction/` | Niveau de forme (VDOT), projection et pourcentage de réussite |
@@ -138,6 +139,9 @@ le profil, les courses officielles et les ajustements du programme, non : sauveg
   - Service d'altimétrie de l'IGN (Géoplateforme, public, gratuit, sans clé) : altitude du
     terrain sous les positions GPS d'une trace, pour corriger le dénivelé. France seulement ;
     réponses gardées dans le dossier `elevation-cache` des données (un réimport ne le rappelle pas).
+  - API d'altitude d'Open-Meteo (public, gratuit pour un usage non commercial, sans clé) : altitude
+    du terrain là où l'IGN n'en a pas (étranger, mer), modèle mondial Copernicus (maille de 90 m).
+    Quota par minute : au-delà, les traces restantes sont complétées au prochain import.
   - L'API Strava n'est **pas** utilisée (payante depuis juin 2026, usage IA interdit).
 
 ## Flux
@@ -245,13 +249,14 @@ le profil, les courses officielles et les ajustements du programme, non : sauveg
   réimporter l'archive Strava complète (avec le dossier `activities/`).
 - **FC max affichée très élevée (plus de 195) sur une sortie tranquille** → artefact du capteur
   optique au poignet → se fier à la « FC tenue 10 s » et aux courses pour renseigner le profil.
-- **« D+ du terrain indisponible pour N trace(s) »** dans le résumé d'import → sorties hors de
-  France (non couvertes par l'IGN), pas de connexion internet, ou délai dépassé lors du premier
-  import d'une grosse archive depuis la page web → relancer l'import : les traces déjà corrigées
-  ne sont pas redemandées. Hors de France, le D+ de la montre reste affiché (normal).
+- **« D+ du terrain indisponible pour N trace(s) »** dans le résumé d'import → pas de connexion
+  internet, service d'altitude en panne, ou quota d'Open-Meteo atteint (premier import de
+  nombreuses sorties à l'étranger) → relancer l'import quelques minutes plus tard : les traces déjà
+  corrigées ne sont pas redemandées. En attendant, le D+ de la montre reste affiché.
 - **Le D+ diffère de celui de la montre ou de Strava** → comportement normal : le D+ est
-  recalculé sur l'altitude du terrain (mention « terrain IGN » sur le détail, avec la valeur
-  enregistrée à côté). Une montre sans baromètre surestime ou sous-estime souvent le relief.
+  recalculé sur l'altitude du terrain (mention « altitude du terrain » sur le détail, avec la valeur
+  enregistrée à côté : IGN en France, précision métrique ; modèle mondial à 90 m à l'étranger, moins
+  fin). Une montre sans baromètre surestime ou sous-estime souvent le relief.
 - **Une course apparaît en « Course » au lieu de « Trail » (ou l'inverse)** → le type vient de la
   source (intervals.icu, fichier) ou du nom de la sortie : un nom contenant « trail » classe la
   course en Trail → renommer la sortie (dans Strava / intervals.icu) puis réimporter ou resynchroniser.

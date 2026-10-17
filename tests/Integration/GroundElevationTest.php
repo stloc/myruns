@@ -6,6 +6,7 @@ namespace App\Tests\Integration;
 
 use App\Elevation\ElevationCorrector;
 use App\Elevation\IgnAltimetry;
+use App\Elevation\OpenMeteoElevation;
 use App\Entity\Activity;
 use App\Enum\SplitKind;
 use App\Enum\Sport;
@@ -19,6 +20,7 @@ use Symfony\Component\Cache\Adapter\ArrayAdapter;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\HttpClient\MockHttpClient;
 use Symfony\Component\HttpClient\Response\JsonMockResponse;
+use Symfony\Component\HttpClient\Response\MockResponse;
 
 /**
  * D+ recalculé sur l'altitude du terrain (faux service IGN) à l'import d'une trace GPS.
@@ -86,6 +88,9 @@ final class GroundElevationTest extends KernelTestCase
             return new JsonMockResponse(['elevations' => $elevations]);
         }, 'https://data.geopf.fr');
 
+        // Sortie en France : les services mondiaux ne doivent pas être appelés.
+        $unused = new MockHttpClient(static fn (): MockResponse => throw new \LogicException('Service mondial appelé pour une sortie en France.'));
+
         $container = self::getContainer();
 
         return new ActivityImporter(
@@ -93,7 +98,7 @@ final class GroundElevationTest extends KernelTestCase
             new StravaCsvParser(),
             new TrackFileParser(),
             new SplitCalculator(),
-            new ElevationCorrector(new IgnAltimetry($client, new ArrayAdapter())),
+            new ElevationCorrector(new IgnAltimetry($client, new ArrayAdapter()), new OpenMeteoElevation($unused, new ArrayAdapter(), minIntervalSeconds: 0.0)),
             $this->workDir,
         );
     }
