@@ -21,6 +21,8 @@ final class ActivityRepository extends ServiceEntityRepository
     public const SOURCE_FILE = 'track_file';
 
     private const RUNNING_SPORTS = [Sport::Run, Sport::TrailRun, Sport::VirtualRun];
+    /** En dessous, un enregistrement n'est pas une sortie (montre lancée par erreur) : ignoré par les analyses. */
+    private const MIN_RUN_METERS = 500.0;
 
     /** @var array<string, Activity>|null activités connues par identifiant, chargées pour un import */
     private ?array $byId = null;
@@ -114,7 +116,8 @@ final class ActivityRepository extends ServiceEntityRepository
     }
 
     /**
-     * @return list<Activity> courses à pied depuis la date donnée, de la plus récente à la plus ancienne
+     * @return list<Activity> courses à pied depuis la date donnée, de la plus récente à la plus ancienne,
+     *                        sans les enregistrements de moins de 500 m
      */
     public function findRunsSince(\DateTimeImmutable $since): array
     {
@@ -122,7 +125,9 @@ final class ActivityRepository extends ServiceEntityRepository
         return $this->createQueryBuilder('a')
             ->andWhere('a.sport IN (:sports)')
             ->andWhere('a.startDate >= :since')
+            ->andWhere('a.distanceMeters >= :minDistance')
             ->setParameter('sports', self::RUNNING_SPORTS)
+            ->setParameter('minDistance', self::MIN_RUN_METERS)
             ->setParameter('since', $since, UtcDateTimeImmutableType::NAME)
             ->orderBy('a.startDate', \SortDirection::Descending)
             ->getQuery()
