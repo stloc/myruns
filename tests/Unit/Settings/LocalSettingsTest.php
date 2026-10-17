@@ -23,6 +23,17 @@ final class LocalSettingsTest extends TestCase
         new Filesystem()->remove($this->dir);
     }
 
+    public function testUnresolvedDataDirIsNeverWritten(): void
+    {
+        // Nom de variable reçu pendant la compilation du conteneur, avant résolution.
+        $placeholder = 'env_c93fade69c9d956b_default_app_default_data_dir_MYSTRAVA_DATA_DIR_'.bin2hex(random_bytes(4));
+
+        $vars = new SettingsEnvVarLoader(new LocalSettings($placeholder))->loadEnvVars();
+
+        self::assertSame([], $vars);
+        self::assertDirectoryDoesNotExist($placeholder);
+    }
+
     public function testKeysAreSavedClearedAndExposedAsEnvVars(): void
     {
         $settings = new LocalSettings($this->dir);

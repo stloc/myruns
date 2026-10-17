@@ -6,6 +6,7 @@ namespace App\Settings;
 
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Filesystem\Filesystem;
+use Symfony\Component\Filesystem\Path;
 
 /**
  * Réglages saisis dans l'application (clés d'API), stockés dans settings.json du dossier de données.
@@ -69,7 +70,7 @@ final class LocalSettings
     public function all(): array
     {
         $settings = $this->read();
-        if ('' === ($settings[self::SECRET] ?? '')) {
+        if ('' === ($settings[self::SECRET] ?? '') && $this->hasDataDir()) {
             $settings[self::SECRET] = bin2hex(random_bytes(16));
             $this->write($settings);
         }
@@ -83,7 +84,7 @@ final class LocalSettings
     private function read(): array
     {
         $file = $this->file();
-        if (!is_file($file)) {
+        if (!$this->hasDataDir() || !is_file($file)) {
             return [];
         }
 
@@ -104,10 +105,25 @@ final class LocalSettings
      */
     private function write(array $settings): void
     {
+        if (!$this->hasDataDir()) {
+            throw new \LogicException(\sprintf('Dossier de données invalide : « %s ».', $this->dataDir));
+        }
+
         $filesystem = new Filesystem();
         $filesystem->mkdir($this->dataDir);
         $filesystem->dumpFile($this->file(), json_encode($settings, \JSON_PRETTY_PRINT | \JSON_THROW_ON_ERROR));
         $filesystem->chmod($this->file(), 0o600);
+    }
+
+    /**
+     * Pendant la compilation du conteneur (lint:container, cache:warmup), Symfony peut appeler le
+     * chargeur de variables avant de résoudre %app.data_dir% : on reçoit alors un nom de variable
+     * (« env_…_MYSTRAVA_DATA_DIR_… »), relatif, qui créerait un dossier parasite dans le projet.
+     * Le vrai dossier de données est toujours un chemin absolu.
+     */
+    private function hasDataDir(): bool
+    {
+        return Path::isAbsolute($this->dataDir);
     }
 
     private function file(): string
