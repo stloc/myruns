@@ -470,6 +470,18 @@ L'affichage suit le thème clair ou sombre du système.
 5. Menu **Import** : importer son archive Strava (voir ci-dessous), puis **Synchroniser
    maintenant** pour les séances récentes.
 
+**Relier sa montre (Garmin, Coros, Suunto, Polar…) sans Strava**
+
+1. Créer un compte gratuit sur intervals.icu et y connecter l'appli de la montre (*Settings*).
+2. Historique Garmin (facultatif) : demander l'export de ses données sur le site Garmin
+   (*Compte* → *Gestion des données* → *Exporter vos données*), puis coller le lien reçu par
+   e-mail dans intervals.icu (*Importer toutes les données depuis Garmin*). Délai : plusieurs jours.
+3. Copier la clé *API Key* (intervals.icu, *Settings* → *Developer Settings*, tout en bas) dans
+   **Réglages** de MyRuns, puis **Import** → **Synchroniser maintenant**.
+4. Première synchronisation : 30 derniers jours seulement (reprise de l'historique en préparation).
+
+Guide détaillé à transmettre à l'utilisateur : `GUIDE.md` du dépôt.
+
 **Récupérer son archive Strava et l'importer**
 
 1. Sur strava.com : Paramètres → Mon compte → *Télécharger ou supprimer votre compte* →

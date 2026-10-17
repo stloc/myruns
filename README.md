@@ -4,6 +4,9 @@ Importe vos activités Strava **sans l'API Strava** et prédit vos chances de r�
 chrono, à la manière de Kiprun Pacer (« 55 % de réussir un 10 km en 45:00 le 15/12 »), avec une
 analyse complémentaire par IA ([Symfony AI](https://ai.symfony.com/)).
 
+> Utilisateur de l'application de bureau, sans connaissances techniques ? Voir le
+> **[guide de démarrage](GUIDE.md)** (montre → intervals.icu → MyRuns, pas à pas).
+
 Trois façons de l'utiliser :
 
 - une **application Windows** à installer (fenêtre Tauri, PHP embarqué, données sur le PC de
