@@ -273,6 +273,11 @@ le profil, les courses officielles et les ajustements du programme, non : sauveg
 - **Pas de carte « Parcours » sur le détail d'une activité** → l'activité a été importée avant
   l'ajout de la carte, n'a pas de positions GPS (tapis, home-trainer, CSV seul) ou est une séance de
   natation → réimporter l'archive Strava complète ou lancer une synchro ; sans GPS, pas de carte (normal).
+- **Pas de bloc « Même parcours » alors que la boucle a déjà été courue** → les sorties ne sont
+  rapprochées que si elles ont toutes deux une trace GPS, partent à moins de 300 m l'une de l'autre,
+  ont une distance proche (±10 %) et suivent le même tracé **dans le même sens** (une boucle faite à
+  l'envers, un détour ou un raccourci comptent comme un autre parcours) → comportement normal ;
+  pour une sortie sans carte, voir le point précédent.
 - **Pas de « Carte des départs » sur la page Activités** → aucune sortie de la recherche n'a de
   trace GPS (import du seul CSV, tapis, natation) ou les critères sont trop restrictifs → élargir la
   recherche, ou réimporter l'archive Strava complète (avec le dossier `activities/`).
@@ -391,12 +396,23 @@ flèches pour naviguer, Entrée pour valider, Échap pour revenir, Ctrl+C pour q
 - **Tableau de bord** : quatre indicateurs (indice de forme, volume moyen, nombre de sorties,
   sortie longue), histogramme des kilomètres par semaine (survol : valeur de la semaine ;
   « Voir les données » : tableau), temps potentiels du 5 km au marathon, dernières activités.
-- **Activités** : formulaire de recherche (mots du nom, type — dont « Course » qui regroupe
-  route, trail et virtuelle —, période, distance min. et max., D+ min.) et tri (plus récentes,
-  plus longues, plus de dénivelé, allure la plus rapide…) ; résultats par 50. Le symbole ⏱
-  indique que les temps de passage sont disponibles.
-- **Détail d'une activité** : résumé (distance, temps, allure, FC, D+ ; « terrain IGN » quand le
-  D+ a été recalculé sur le relief, avec la valeur enregistrée par la montre), tableau des passages au
+- **Activités** : formulaire de recherche (mots du nom ou de la ville, type — dont « Course » qui regroupe
+  route, trail et virtuelle —, période, distance min. et max., D+ min.) et tri (date, distance,
+  durée, dénivelé, allure) en ordre croissant ou décroissant ; résultats par 50. Le symbole ⏱
+  indique que les temps de passage sont disponibles. Au-dessus du tableau, la **carte des départs**
+  montre le point de départ de chaque sortie avec trace GPS correspondant à la recherche (toutes
+  pages confondues). Les départs proches sont regroupés dans un rond indiquant leur nombre : cliquer
+  sur le rond (ou zoomer) les sépare ; au zoom maximal, un rond restant (départs de la maison)
+  ouvre la liste des sorties, les 30 plus récentes. Survol d'un point : nom, date, distance ;
+  clic : détail de la sortie.
+- **Détail d'une activité** : résumé (distance, temps, allure, FC, D+ ; « altitude du terrain » quand le
+  D+ a été recalculé sur le relief, avec la valeur enregistrée par la montre), carte du parcours
+  (trace colorée du plus lent au plus rapide : vert, bleu, violet, orange, rouge — vitesse pour le vélo —, arrêts en
+  pointillés gris, point vert au départ ; survoler la trace affiche l'allure ; zoom avec les
+  boutons + / −), bloc **Même parcours** quand la boucle a déjà été faite (classement au temps de
+  déplacement, meilleur temps, moyenne et FC moyenne des autres sorties, écart avec la sortie
+  précédente — en vert si plus rapide —, liste des 30 sorties les plus récentes avec leur rang
+  et leur écart au record), tableau des passages au
   kilomètre avec une barre de vitesse et le repère « rapide » pour les fractions nettement plus
   rapides que l'allure médiane, et les tours de la montre quand ils diffèrent des kilomètres.
 - **Objectif** : formulaire distance / temps / date ; le résultat affiche le pourcentage, une jauge,
@@ -473,6 +489,12 @@ L'affichage suit le thème clair ou sombre du système.
 1. Ouvrir [https://mystrava.ddev.site/activites](https://mystrava.ddev.site/activites).
 2. Cliquer sur le nom de l'activité : la carte du parcours, les kilomètres et les tours s'affichent.
 
+**Comparer une sortie avec les précédentes sur la même boucle**
+
+1. Ouvrir le détail de l'activité (voir ci-dessus).
+2. Le bloc **Même parcours**, sous la carte, donne le classement de la sortie, le record de la
+   boucle, l'écart avec la moyenne et avec la sortie précédente ; cliquer sur une date ou un nom
+   ouvre l'autre sortie.
 
 **Retrouver une sortie**
 

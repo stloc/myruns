@@ -68,6 +68,82 @@
         </section>
     {% endif %}
 
+    {% if same_route %}
+        {% set gap_class = 'gap-' ~ (same_route.gapToAverage < 0 ? 'faster' : 'slower') %}
+        <section class="card" aria-labelledby="same-route-title">
+            <h2 id="same-route-title">Même parcours</h2>
+            <p class="card-subtitle">
+                {{ same_route.count }} sorties sur ce parcours depuis le {{ same_route.first.startDate|date('d/m/Y') }},
+                comparées au temps de déplacement (départ, tracé et sens identiques).
+            </p>
+            <div class="stat-grid">
+                <div class="stat-tile">
+                    <span class="stat-label">Classement</span>
+                    <span class="stat-value">{{ same_route.rank == 1 ? 'Record' : same_route.rank ~ 'ᵉ' }}</span>
+                    <span class="stat-detail">sur {{ same_route.count }} sorties</span>
+                </div>
+                <div class="stat-tile">
+                    <span class="stat-label">Meilleur temps</span>
+                    <span class="stat-value">{{ same_route.best.movingTimeSeconds|duration }}</span>
+                    <span class="stat-detail">
+                        {%- if same_route.best is same as(activity) %}cette sortie
+                        {%- else %}<a href="{{ path('activity_show', {id: same_route.best.id}) }}">le {{ same_route.best.startDate|date('d/m/Y') }}</a> · {{ same_route.gapToBest|gap }}{% endif -%}
+                    </span>
+                </div>
+                <div class="stat-tile">
+                    <span class="stat-label">Moyenne des autres sorties</span>
+                    <span class="stat-value">{{ same_route.othersAverageSeconds|duration }}</span>
+                    <span class="stat-detail"><span class="{{ gap_class }}">{{ same_route.gapToAverage|gap }}</span>
+                        {%- if same_route.othersAverageHeartRate is not null %} · FC moy. {{ same_route.othersAverageHeartRate|number_format(0) }} bpm
+                            {%- if activity.averageHeartRate is not null %} (ici {{ activity.averageHeartRate|number_format(0) }}){% endif %}
+                        {%- endif -%}
+                    </span>
+                </div>
+                {% if same_route.previous %}
+                    <div class="stat-tile">
+                        <span class="stat-label">Sortie précédente</span>
+                        <span class="stat-value">{{ same_route.previous.movingTimeSeconds|duration }}</span>
+                        <span class="stat-detail">
+                            <a href="{{ path('activity_show', {id: same_route.previous.id}) }}">le {{ same_route.previous.startDate|date('d/m/Y') }}</a> ·
+                            <span class="gap-{{ same_route.gapToPrevious < 0 ? 'faster' : 'slower' }}">{{ same_route.gapToPrevious|gap }}</span>
+                        </span>
+                    </div>
+                {% endif %}
+            </div>
+            <div class="table-scroll">
+                <table class="data-table same-route-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Date</th>
+                            <th scope="col" class="num">Rang</th>
+                            <th scope="col">Nom</th>
+                            <th scope="col" class="num">Temps</th>
+                            <th scope="col" class="num">Écart au record</th>
+                            <th scope="col" class="num">{{ activity.sport.isRunning ? 'Allure' : 'Distance' }}</th>
+                            <th scope="col" class="num">FC moy.</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in same_route.rows %}
+                            <tr{% if row.current %} class="is-current" aria-current="true"{% endif %}>
+                                <td>{{ row.activity.startDate|date('d/m/Y') }}</td>
+                                <td class="num">{{ row.rank }}</td>
+                                <td>{% if row.current %}<strong>Cette sortie</strong>{% else %}<a href="{{ path('activity_show', {id: row.activity.id}) }}">{{ row.activity.name ?: row.activity.sport.label }}</a>{% endif %}</td>
+                                <td class="num"><strong>{{ row.activity.movingTimeSeconds|duration }}</strong></td>
+                                <td class="num muted">{{ row.gap_to_best|gap }}</td>
+                                <td class="num">{{ activity.sport.isRunning ? row.activity.paceSecondsPerKm|pace : row.activity.distanceMeters|distance }}</td>
+                                <td class="num">{{ row.activity.averageHeartRate is not null ? row.activity.averageHeartRate|number_format(0) : '–' }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% if same_route.count > same_route.rows|length %}
+                <p class="muted">Les {{ constant('App\\Route\\RouteComparison::MAX_ROWS') }} sorties les plus récentes sur {{ same_route.count }}.</p>
+            {% endif %}
+        </section>
+    {% endif %}
+
     {% if laps %}
         <section class="card">
             <h2>Tours de la montre</h2>

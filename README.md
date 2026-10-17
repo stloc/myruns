@@ -91,7 +91,11 @@ Pendant l'import, chaque trace GPS reçoit :
   20 m, 2 000 points au plus ; jamais pour la natation). Carte Leaflet sur fond OpenStreetMap,
   tronçons de 100 m colorés selon l'allure (vitesse hors course à pied) en 5 classes de même
   effectif, arrêts en pointillés (`src/Chart/RouteMap.php`). Activités importées avant cette
-  version : relancer l'import de l'archive (ou une synchro) pour obtenir leur carte ;
+  version : relancer l'import de l'archive (ou une synchro) pour obtenir leur carte. Cette trace
+  sert aussi à retrouver les **autres sorties du même parcours** (`src/Route/`) : départ à moins
+  de 300 m, distance à ±10 %, et chaque trace longe l'autre à 60 m près sur 90 % de sa longueur,
+  dans le même sens. La page détail affiche le classement au temps de déplacement, le record, la
+  moyenne des autres sorties, l'écart avec la précédente et la liste des sorties ;
 - un **D+ recalculé sur le terrain** (`src/Elevation/`), partout dans le monde : un point tous
   les 10 m est envoyé au service d'altimétrie de l'IGN (RGE ALTI, France, sans clé) ; les points
   qu'il ne couvre pas (étranger, mer) sont demandés à l'API d'altitude d'**Open-Meteo** (modèle
@@ -128,7 +132,7 @@ résolu depuis la racine du projet. L'import est idempotent, donc planifiable (c
 |---|---|
 | Tableau de bord (forme, volume 26 semaines, potentiel, dernières sorties) | `/` |
 | Liste des activités : recherche, tri, carte des départs (regroupés selon le zoom) | `/activites` |
-| Détail d'une activité : carte du parcours (allure), temps de passage au km, tours de la montre, km rapides | `/activites/{id}` |
+| Détail d'une activité : carte du parcours (allure), comparaison avec les sorties du même parcours, temps de passage au km, tours de la montre, km rapides | `/activites/{id}` |
 | Objectif & prédiction (+ analyse IA) | `/objectif` |
 | Programme d'entraînement jusqu'au dernier objectif calculé | `/programme` |
 | Import | `/import` |

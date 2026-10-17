@@ -94,6 +94,18 @@ final class Units
         return $h > 0 ? \sprintf('%d:%02d:%02d', $h, $m, $s) : \sprintf('%d:%02d', $m, $s);
     }
 
+    /** Écart de temps signé : « +1:05 », « −0:12 », « = » si identique. */
+    public static function formatGap(int|float $seconds): string
+    {
+        $seconds = (int) round($seconds);
+
+        return match (true) {
+            0 === $seconds => '=',
+            $seconds > 0 => '+'.self::formatDuration($seconds),
+            default => "\u{2212}".self::formatDuration(-$seconds),
+        };
+    }
+
     public static function formatPace(?float $secondsPerKm): string
     {
         if (null === $secondsPerKm || $secondsPerKm <= 0) {

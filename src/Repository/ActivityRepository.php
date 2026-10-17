@@ -120,6 +120,43 @@ final class ActivityRepository extends ServiceEntityRepository
         return $positions;
     }
 
+    /**
+     * Sorties qui ont pu suivre le même parcours que l'activité (elle comprise) : trace GPS partant à
+     * moins de $radiusMeters, même famille de sport, distance à ±$distanceRatio. Traces chargées dans
+     * la même requête, pour la comparaison géométrique.
+     *
+     * @return list<Activity>
+     */
+    public function findRouteCandidates(Activity $activity, float $radiusMeters, float $distanceRatio): array
+    {
+        $start = $activity->routePoints()[0] ?? null;
+        if (null === $start) {
+            return [];
+        }
+
+        $latitudeDelta = $radiusMeters / 111195;
+        $longitudeDelta = $latitudeDelta / max(0.01, cos(deg2rad($start[0])));
+
+        /* @var list<Activity> */
+        return $this->createQueryBuilder('a')
+            ->addSelect('r')
+            ->join('a.route', 'r')
+            ->andWhere('a.sport IN (:sports)')
+            ->andWhere('r.startLatitude BETWEEN :minLatitude AND :maxLatitude')
+            ->andWhere('r.startLongitude BETWEEN :minLongitude AND :maxLongitude')
+            ->andWhere('a.distanceMeters BETWEEN :minDistance AND :maxDistance')
+            ->setParameter('sports', $activity->sport->isRunning() ? self::RUNNING_SPORTS : [$activity->sport])
+            ->setParameter('minLatitude', $start[0] - $latitudeDelta)
+            ->setParameter('maxLatitude', $start[0] + $latitudeDelta)
+            ->setParameter('minLongitude', $start[1] - $longitudeDelta)
+            ->setParameter('maxLongitude', $start[1] + $longitudeDelta)
+            ->setParameter('minDistance', $activity->distanceMeters * (1 - $distanceRatio))
+            ->setParameter('maxDistance', $activity->distanceMeters * (1 + $distanceRatio))
+            ->orderBy('a.startDate', \SortDirection::Descending)
+            ->getQuery()
+            ->getResult();
+    }
+
     private function searchQuery(ActivitySearch $search): QueryBuilder
     {
         $qb = $this->createQueryBuilder('a');

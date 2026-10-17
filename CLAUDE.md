@@ -61,6 +61,11 @@ tournent aussi sur l'hôte. `ddev start` ne demande `sudo` qu'au tout premier d�
   `ActivityRepository::startPositions()` reprend les critères de la recherche, toutes pages
   confondues ; `src/Chart/StartMap.php` → `assets/activities_map.js` : regroupement maison par
   distance (60 px, fusion des groupes trop proches, pas de plugin Leaflet), liste au zoom 17.
+- Même parcours (`src/Route/`, page détail) : rien n'est stocké ; candidats en SQL (départ à < 300 m
+  via `ActivityRoute::$startLatitude/$startLongitude`, même famille de sport, distance ±10 %), puis
+  `RouteMatcher` : chaque trace longe l'autre à 60 m près sur ≥ 90 %, **dans le même sens** (boucle
+  à l'envers = autre parcours). Comparaison au temps de déplacement. Figé par
+  `tests/Unit/Route/RouteMatcherTest.php` et `tests/Functional/SameRouteTest.php`.
 - Trail : type déclaré par la source ou nom contenant « trail » (`Sport::refinedByName()`), jamais
   le sous-sport FIT (mode montre utilisé aussi sur route).
 - Estimation cardiaque : Karvonen (FC repos par défaut 60) ; ignorée si une course < 12 semaines.

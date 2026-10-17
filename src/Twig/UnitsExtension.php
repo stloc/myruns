@@ -15,6 +15,12 @@ final class UnitsExtension
         return Units::formatDuration($seconds);
     }
 
+    #[AsTwigFilter('gap')]
+    public function gap(int|float $seconds): string
+    {
+        return Units::formatGap($seconds);
+    }
+
     #[AsTwigFilter('pace')]
     public function pace(?float $secondsPerKm): string
     {

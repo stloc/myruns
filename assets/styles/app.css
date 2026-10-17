@@ -286,6 +286,9 @@ code { font-size: 0.9em; overflow-wrap: anywhere; }
     opacity: 0.55;
 }
 .split-table .is-fast .speed-bar { opacity: 1; }
+.gap-faster { color: var(--success-text); }
+.gap-slower { color: var(--warning-text); }
+.same-route-table .is-current td { background: var(--accent-soft); }
 
 .pagination { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 1.5rem; margin-top: 1rem; }
 
