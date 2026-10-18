@@ -9,8 +9,8 @@ analyse complémentaire par IA ([Symfony AI](https://ai.symfony.com/)).
 
 Trois façons de l'utiliser :
 
-- une **application Windows** à installer (fenêtre Tauri, PHP embarqué, données sur le PC de
-  chacun) : voir [Application de bureau Windows](#application-de-bureau-windows) ;
+- une **application de bureau** Windows ou Linux à installer (fenêtre Tauri, PHP embarqué,
+  données sur le PC de chacun) : voir [Application de bureau](#application-de-bureau) ;
 - un **dashboard web** : <https://mystrava.ddev.site> ;
 - une **interface terminal** ([symfony/tui](https://symfony.com/packages/tui)) : `ddev exec bin/console tui`.
 
@@ -147,23 +147,32 @@ résolu depuis la racine du projet. L'import est idempotent, donc planifiable (c
 Pas d'authentification : l'application est prévue pour un usage local (DDEV ou application de
 bureau, qui n'écoute que sur `127.0.0.1`).
 
-## Application de bureau Windows
+## Application de bureau
 
 Pour des utilisateurs sans DDEV ni Docker : un installeur Windows (NSIS, sans droits
-administrateur) qui embarque l'app Symfony et un PHP 8.4 officiel.
+administrateur) qui embarque l'app Symfony et un PHP 8.4 officiel, et sous Linux un `.deb` et une
+AppImage qui embarquent un PHP 8.4 statique ([static-php-cli](https://static-php.dev), build
+« common » : `pdo_sqlite` inclus ; ni `intl` ni opcache, inutiles grâce aux polyfills Symfony).
 
 - `desktop/src-tauri/src/main.rs` : au lancement, dossier de données `%APPDATA%\local.myruns.desktop`
+  (Linux : `~/.local/share/local.myruns.desktop`)
   (`MYRUNS_DATA_DIR`, cache Symfony par version, `logs/` ; reprend une fois `local.mystrava.desktop`
   et `mystrava.db` de l'ancien nom de l'app), migrations, `cache:warmup`, puis
   `php -S 127.0.0.1:<port libre> router.php` ; la fenêtre bascule sur l'app quand le port répond
   et PHP est arrêté à la fermeture. Les liens externes s'ouvrent dans le navigateur.
 - `desktop/php.ini` : extensions (`pdo_sqlite`, `intl`, `zip`, `curl`…), envois jusqu'à 2 Go ;
-  `extension_dir` et certificats (`cacert.pem`) passés en `-d` par Tauri.
+  `extension_dir` et certificats (`cacert.pem`) passés en `-d` par Tauri. Sous Linux, le workflow
+  retire les lignes `extension=` (extensions intégrées au binaire statique).
+- `desktop/src-tauri/tauri.windows.conf.json`, `tauri.linux.conf.json` : formats d'installeur et
+  PHP embarqué propres à chaque système.
 - `desktop/router.php` : routeur du serveur interne de PHP (fichiers de `public/`, sinon Symfony).
 - `bin/prepare-desktop-app` : copie l'app dans `desktop/build/app` (`composer install --no-dev`,
   `asset-map:compile`, sans `var/`, `imports/`, `tests/` ni `.env.local`).
-- `.github/workflows/desktop.yml` : sur un tag `v*`, runner Windows → PHP Windows figé
-  (version + SHA256), `cacert.pem` vérifié, installeur Tauri joint à une release GitHub brouillon.
+- `.github/workflows/desktop.yml` : sur un tag `v*`, un job Windows (PHP Windows figé : version +
+  SHA256) et un job Linux sur Ubuntu 22.04 (PHP statique figé de la même façon, `.deb` utilisable
+  à partir de glibc 2.35) ; `cacert.pem` vérifié ; les installeurs sont joints à une release GitHub
+  brouillon par le job `release`. Lancement manuel possible (`gh workflow run desktop.yml`) :
+  installeurs en artefacts du run, sans release.
 
 ```bash
 git tag v0.2.0 && git push origin v0.2.0      # puis publier la release brouillon sur GitHub
@@ -177,6 +186,9 @@ cd desktop/src-tauri && cargo tauri dev
 ```
 
 L'interface terminal n'est pas livrée sous Windows (`symfony/tui` s'appuie sur `stty`).
+
+Un `.deb` construit sur un poste dont l'uid dépasse 6 chiffres (compte de domaine) est illisible
+(champ uid du format `ar`) : le fabriquer sur GitHub Actions.
 
 ## Comment la probabilité est calculée
 
@@ -268,7 +280,7 @@ stocké :
 | `src/Controller/`, `src/Form/`, `templates/`, `assets/` | Dashboard web |
 | `src/Chart/ColumnChart.php` | Géométrie de l'histogramme SVG (rendu sans JS) |
 | `src/Tui/MyRunsApp.php` | Interface terminal |
-| `desktop/` | Application de bureau Windows (Tauri) |
+| `desktop/` | Application de bureau Windows et Linux (Tauri) |
 
 ## Qualité
 

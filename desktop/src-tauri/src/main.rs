@@ -98,7 +98,7 @@ fn start(handle: &AppHandle) -> Result<Url, String> {
     Url::parse(&format!("http://{address}/")).map_err(|e| e.to_string())
 }
 
-/// PHP embarqué (Windows), sinon celui de MYRUNS_PHP ou du PATH (développement).
+/// PHP embarqué (Windows, Linux), sinon celui de MYRUNS_PHP ou du PATH (développement).
 struct Php {
     exe: PathBuf,
     args: Vec<String>,

@@ -1,14 +1,15 @@
 # CLAUDE.md — MyRuns
 
 Application personnelle : import d'activités Strava (export de compte ZIP, dossiers GPX/TCX),
-dashboard web, interface terminal et application de bureau Windows (Tauri), prédiction de
+dashboard web, interface terminal et application de bureau Windows et Linux (Tauri), prédiction de
 réussite d'un objectif chrono (VDOT + coach IA).
 
 ## Stack (vérifiée dans composer.lock)
 
 - PHP 8.4, Symfony **8.1**, Doctrine ORM **3.7** / DBAL 4, **SQLite** (`pdo_sqlite`), dev sous **DDEV**
-- Application de bureau : **Tauri 2** (`desktop/`, Rust), PHP Windows embarqué, installeur NSIS
-  construit par GitHub Actions (`.github/workflows/desktop.yml`, sur tag `v*`)
+- Application de bureau : **Tauri 2** (`desktop/`, Rust), PHP embarqué ; installeur NSIS (Windows),
+  `.deb` + AppImage (Linux, PHP statique static-php-cli « common », sans intl), construits par
+  GitHub Actions (`.github/workflows/desktop.yml`, sur tag `v*`)
 - `symfony/tui` 8.1 (**expérimental**, hors promesse de rétrocompatibilité)
 - `symfony/ai-bundle` + `symfony/ai-anthropic-platform` **0.14** (pré-1.0 : vérifier l'API dans `vendor/`)
 - Twig + AssetMapper (pas de build JS, pas de Stimulus) ; graphiques en SVG rendus côté serveur
@@ -93,7 +94,8 @@ tournent aussi sur l'hôte. `ddev start` ne demande `sudo` qu'au tout premier d�
   Ne jamais écrire dans le dossier de l'app (lecture seule une fois installée) : données, uploads,
   cache et logs vont dans le dossier de données.
 - Application de bureau : `bin/prepare-desktop-app` (liste blanche de fichiers : jamais `imports/`,
-  `var/`, `.env.local`) ; PHP Windows figé par version + SHA256 dans le workflow. Pas de TUI sous
+  `var/`, `.env.local`) ; PHP Windows et PHP Linux figés par version + SHA256 dans le workflow ; aucune
+  extension PHP au-delà de celles du build Linux (pas d'`intl` : polyfills Symfony). Pas de TUI sous
   Windows.
 - Profil (`AthleteProfile`, une seule ligne, `AthleteProfileRepository::current()`) : tous les
   champs facultatifs ; **sans profil, les résultats doivent rester identiques** (tests existants).

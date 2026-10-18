@@ -4,12 +4,13 @@
 
 MyRuns récupère les activités sportives enregistrées sur Strava et estime les chances de réussir
 un objectif de course, par exemple « 55 % de chances de courir 10 km en 45 minutes le 15 décembre ».
-Elle s'utilise comme une application Windows (fenêtre MyRuns), depuis un navigateur sur le poste
+Elle s'utilise comme une application de bureau Windows ou Linux (fenêtre MyRuns), depuis un navigateur sur le poste
 de développement, ou depuis un terminal.
 
 | Environnement | Adresse |
 |---|---|
 | Application Windows | Menu Démarrer → **MyRuns** (installeur publié sur la page *Releases* du dépôt GitHub) |
+| Application Linux | Menu des applications → **MyRuns** (`.deb` ou AppImage, même page *Releases*) |
 | Poste de développement (DDEV) | [https://mystrava.ddev.site](https://mystrava.ddev.site) |
 | Interface terminal | `ddev exec bin/console tui`, dans le dossier du projet |
 
@@ -54,8 +55,8 @@ peut ensuite commenter ce résultat et proposer des conseils d'entraînement.
 | `src/Controller/`, `templates/`, `assets/` | Tableau de bord web |
 | `src/Tui/` | Interface terminal |
 | `src/Command/` | Commandes `tui`, `app:import`, `app:predict`, `app:sync` |
-| `desktop/` | Application de bureau Windows (Tauri) : fenêtre, PHP embarqué, installeur |
-| `.github/workflows/desktop.yml` | Fabrication de l'installeur Windows à chaque version (tag `v…`) |
+| `desktop/` | Application de bureau Windows et Linux (Tauri) : fenêtre, PHP embarqué, installeurs |
+| `.github/workflows/desktop.yml` | Fabrication des installeurs Windows et Linux à chaque version (tag `v…`) |
 
 ## Schéma fonctionnel / flux
 
@@ -75,7 +76,7 @@ flowchart LR
 ## Schéma technique / système
 
 - PHP 8.4, Symfony 8.1
-- Application Windows : fenêtre Tauri (moteur WebView2 de Windows) qui lance un PHP 8.4 embarqué
+- Application de bureau : fenêtre Tauri (moteur WebView2 sous Windows, WebKitGTK sous Linux) qui lance un PHP 8.4 embarqué
   (serveur web interne de PHP sur `127.0.0.1`, port choisi au démarrage) et l'arrête à la fermeture
 - Poste de développement : servi par DDEV (nginx + PHP-FPM)
 - Base SQLite (un fichier `myruns.db` par installation), Doctrine ORM
@@ -85,7 +86,7 @@ flowchart LR
 
 ## Schéma réseau
 
-- Flux entrant : aucun depuis le réseau. L'application Windows écoute uniquement sur `127.0.0.1`
+- Flux entrant : aucun depuis le réseau. L'application de bureau écoute uniquement sur `127.0.0.1`
   (le poste lui-même) ; en développement, HTTPS local `mystrava.ddev.site` (routeur DDEV).
 - Flux sortants : HTTPS vers intervals.icu (synchro des séances), vers l'IGN `data.geopf.fr`
   (altitude du terrain et ville du départ, à l'import d'une trace GPS), vers `api.open-meteo.com` et
@@ -113,7 +114,7 @@ flowchart LR
 
 ## Base de données
 
-SQLite : un fichier `myruns.db` dans le dossier des données (application Windows : voir
+SQLite : un fichier `myruns.db` dans le dossier des données (application de bureau : voir
 *Installation locale* ; développement : `var/myruns.db`, tests : `var/test.db`).
 
 | Table | Contenu |
@@ -125,7 +126,7 @@ SQLite : un fichier `myruns.db` dans le dossier des données (application Window
 | `activity_split` | Temps de passage : un kilomètre calculé ou un tour de la montre par ligne (distance, temps, FC moyenne et max, D+) |
 
 Le schéma est géré par les migrations Doctrine (`migrations/`), appliquées automatiquement à
-chaque ouverture de l'application Windows. Les activités se reconstruisent par un nouvel import ;
+chaque ouverture de l'application de bureau. Les activités se reconstruisent par un nouvel import ;
 le profil, les courses officielles et les ajustements du programme, non : sauvegarder
 `myruns.db`.
 
@@ -171,7 +172,7 @@ le profil, les courses officielles et les ajustements du programme, non : sauveg
 
 | Environnement | Accès |
 |---|---|
-| Application Windows | Menu Démarrer → **MyRuns** — pas de connexion demandée ; mêmes menus que ci-dessous |
+| Application Windows / Linux | Menu Démarrer (ou menu des applications) → **MyRuns** — pas de connexion demandée ; mêmes menus que ci-dessous |
 | Poste de développement (DDEV) | [https://mystrava.ddev.site](https://mystrava.ddev.site) — pas de connexion demandée |
 
 | Menu | Lien | Contenu |
@@ -321,23 +322,27 @@ le profil, les courses officielles et les ajustements du programme, non : sauveg
 
 ## Logs
 
-- Application Windows : dossier `logs` des données (`%APPDATA%\local.myruns.desktop\logs`) —
+- Application de bureau : dossier `logs` des données (Windows : `%APPDATA%\local.myruns.desktop\logs`,
+  Linux : `~/.local/share/local.myruns.desktop/logs`) —
   `migrations.log` (mise à jour de la base), `cache.log`, `server.log` (erreurs PHP).
 - Développement : `ddev logs` (conteneur web), dont « Analyse IA en échec » pour le coach IA.
 - Commandes : résultat affiché à l'écran ; en tâche planifiée, rediriger la sortie vers un fichier.
 
 ## Procédure d'installation
 
-Publier une nouvelle version de l'application Windows (développeur) :
+Publier une nouvelle version de l'application de bureau (développeur) :
 
 1. Vérifier la chaîne qualité et les tests (voir `README.md`).
 2. Créer et pousser un tag : `git tag v0.2.0 && git push origin v0.2.0`.
-3. GitHub Actions (*Application de bureau*) fabrique l'installeur
-   `MyRuns_0.2.0_x64-setup.exe` et l'attache à une release **brouillon**.
+3. GitHub Actions (*Application de bureau*) fabrique les installeurs
+   `MyRuns_0.2.0_x64-setup.exe` (Windows), `MyRuns_0.2.0_amd64.deb` et `MyRuns_0.2.0_amd64.AppImage`
+   (Linux) et les attache à une release **brouillon** (une vingtaine de minutes).
 4. Sur la page *Releases* du dépôt, relire puis **Publier** la release et envoyer le lien.
 
 Le PHP Windows embarqué est figé dans `.github/workflows/desktop.yml` (`PHP_WINDOWS_VERSION` et
-son empreinte `PHP_WINDOWS_SHA256`, à reprendre de windows.php.net lors d'une montée de version).
+son empreinte `PHP_WINDOWS_SHA256`, à reprendre de windows.php.net lors d'une montée de version),
+de même que le PHP Linux (`PHP_LINUX_VERSION`, `PHP_LINUX_SHA256` : build « common » de
+dl.static-php.dev, empreinte calculée avec `sha256sum` sur l'archive téléchargée).
 
 ## Installation locale
 
@@ -358,6 +363,17 @@ d'adresse de l'Explorateur) — `myruns.db` (base), `settings.json` (clés), `lo
   (Paramètres Windows → Applications) : il n'a plus de données.
 - **Désinstaller** : Paramètres Windows → Applications → MyRuns. Le dossier des données reste
   en place (le supprimer à la main pour tout effacer).
+
+**Application Linux** (Ubuntu 22.04 ou plus récent, Debian 12, ou toute distribution avec l'AppImage) :
+
+- Ubuntu / Debian : télécharger `MyRuns_x.y.z_amd64.deb`, puis
+  `sudo apt install ./MyRuns_x.y.z_amd64.deb` (installe aussi WebKitGTK). Mise à jour : même commande
+  avec le nouveau fichier ; désinstallation : `sudo apt remove my-runs`.
+- Autres distributions : télécharger `MyRuns_x.y.z_amd64.AppImage`, le rendre exécutable
+  (`chmod +x`) et le lancer ; mise à jour : remplacer le fichier.
+
+Données : `~/.local/share/local.myruns.desktop` (mêmes fichiers que sous Windows), conservées à la
+désinstallation.
 
 **Poste de développement** :
 

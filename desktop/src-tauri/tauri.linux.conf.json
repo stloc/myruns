@@ -1,0 +1,9 @@
+{
+  "bundle": {
+    "targets": ["deb", "appimage"],
+    "resources": {
+      "../build/app/": "app/",
+      "../build/php/": "php/"
+    }
+  }
+}
