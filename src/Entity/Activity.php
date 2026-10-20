@@ -8,8 +8,10 @@ use App\Doctrine\UtcDateTimeImmutableType;
 use App\Enum\SplitKind;
 use App\Enum\Sport;
 use App\Repository\ActivityRepository;
+use App\Weather\Weather;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
@@ -37,6 +39,14 @@ class Activity
     /** Commune du point de départ (géocodage inverse IGN de la trace GPS, France seulement). */
     #[ORM\Column(length: 100, nullable: true)]
     public private(set) ?string $city = null;
+
+    /**
+     * Météo pendant la sortie (Open-Meteo, au point de départ), lue via weather().
+     *
+     * @var array<mixed>|null
+     */
+    #[ORM\Column(type: Types::JSON, nullable: true)]
+    private ?array $weather = null;
 
     /** Trace GPS simplifiée (chargée seulement quand on la lit : page détail). */
     #[ORM\OneToOne(cascade: ['persist'], orphanRemoval: true)]
@@ -160,6 +170,26 @@ class Activity
         $this->groundElevationGain = $groundElevationGain;
 
         return true;
+    }
+
+    /**
+     * Pose la météo de la sortie ; jamais effacée (service injoignable : on garde celle déjà connue).
+     *
+     * @return bool true si elle a changé
+     */
+    public function replaceWeather(Weather $weather): bool
+    {
+        if ($weather->toArray() === $this->weather) {
+            return false;
+        }
+        $this->weather = $weather->toArray();
+
+        return true;
+    }
+
+    public function weather(): ?Weather
+    {
+        return null === $this->weather ? null : Weather::fromArray($this->weather);
     }
 
     /**

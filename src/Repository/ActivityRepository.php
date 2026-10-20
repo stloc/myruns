@@ -128,6 +128,33 @@ final class ActivityRepository extends ServiceEntityRepository
     }
 
     /**
+     * Sorties avec une trace GPS mais sans météo (importées avant elle, ou service injoignable),
+     * de la plus récente à la plus ancienne. Seule la position de départ est lue, pas la trace.
+     *
+     * @return list<array{id: string, latitude: float, longitude: float}>
+     */
+    public function startsWithoutWeather(): array
+    {
+        $rows = $this->createQueryBuilder('a')
+            ->select('a.id, r.startLatitude AS latitude, r.startLongitude AS longitude')
+            ->join('a.route', 'r')
+            ->andWhere('a.weather IS NULL')
+            ->andWhere('r.startLatitude IS NOT NULL AND r.startLongitude IS NOT NULL')
+            ->orderBy('a.startDate', \SortDirection::Descending)
+            ->getQuery()
+            ->getArrayResult();
+
+        $starts = [];
+        foreach ($rows as $row) {
+            if (\is_array($row) && \is_string($row['id'] ?? null) && is_numeric($row['latitude'] ?? null) && is_numeric($row['longitude'] ?? null)) {
+                $starts[] = ['id' => $row['id'], 'latitude' => (float) $row['latitude'], 'longitude' => (float) $row['longitude']];
+            }
+        }
+
+        return $starts;
+    }
+
+    /**
      * Sorties qui ont pu suivre le même parcours que l'activité (elle comprise) : trace GPS partant à
      * moins de $radiusMeters, même famille de sport, distance à ±$distanceRatio. Traces chargées dans
      * la même requête, pour la comparaison géométrique.

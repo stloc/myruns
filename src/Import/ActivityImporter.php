@@ -14,6 +14,7 @@ use App\Import\Track\SplitCalculator;
 use App\Import\Track\TrackPoint;
 use App\Repository\ActivityRepository;
 use App\Repository\UpsertOutcome;
+use App\Weather\OpenMeteoWeather;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Filesystem\Path;
 use Symfony\Component\Finder\Finder;
@@ -51,6 +52,7 @@ final class ActivityImporter
         private readonly SplitCalculator $splitCalculator,
         private readonly ElevationCorrector $elevationCorrector,
         private readonly CityFinder $geocoder,
+        private readonly OpenMeteoWeather $weather,
         #[Autowire('%kernel.project_dir%')] private readonly string $projectDir,
         private readonly RouteSimplifier $routeSimplifier = new RouteSimplifier(),
         private readonly GarminExportParser $garminParser = new GarminExportParser(),
@@ -393,8 +395,13 @@ final class ActivityImporter
 
         $start = $this->firstPosition($track);
         $city = null === $start ? null : $this->geocoder->cityAt((float) $start->latitude, (float) $start->longitude);
+        $weather = null === $start ? null : $this->weather->during((float) $start->latitude, (float) $start->longitude, $activity->startDate, $activity->elapsedTimeSeconds);
 
-        if ($activity->replaceTrackData($splits, $this->splitCalculator->sustainedMaxHeartRate($track->points), $ground?->groundElevationGain, $route, $city)) {
+        $changed = $activity->replaceTrackData($splits, $this->splitCalculator->sustainedMaxHeartRate($track->points), $ground?->groundElevationGain, $route, $city);
+        if (null !== $weather && $activity->replaceWeather($weather)) {
+            $changed = true;
+        }
+        if ($changed) {
             ++$result->withSplits;
         }
     }

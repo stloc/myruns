@@ -8,6 +8,7 @@ use App\Repository\ActivityRepository;
 use App\Repository\TrainingWeekOverrideRepository;
 use App\Tests\Fit\FitFileBuilder;
 use App\Tests\StravaExportFactory;
+use App\Weather\Weather;
 use Doctrine\Bundle\DoctrineBundle\DataCollector\DoctrineDataCollector;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -179,6 +180,56 @@ final class WebDashboardTest extends WebTestCase
         self::assertGreaterThan('pace-1', $route['segments'][8]['class']);
         self::assertStringEndsWith('/km', $route['segments'][8]['label']);
         self::assertSelectorTextContains('.route-legend li:first-child', '/km');
+        self::assertSelectorTextNotContains('.stat-grid', 'Météo', 'Pas de réseau en test : pas de météo');
+
+        $activities = self::getContainer()->get(ActivityRepository::class);
+        $activity = $activities->findAll()[0];
+        $activity->replaceWeather(new Weather(temperature: 6.4, code: 61, apparentTemperature: 3.2, humidity: 91, windSpeed: 22.0, windGusts: 41.0, windDirection: 240, precipitation: 1.4));
+        $activities->flush();
+
+        $this->client->request('GET', '/activites/'.rawurlencode($activity->id));
+        self::assertSelectorTextContains('.stat-grid', '6 °C');
+        self::assertSelectorTextContains('.stat-grid', 'Pluie · ressenti 3 °C · humidité 91 %');
+        self::assertSelectorTextContains('.stat-grid', 'vent 22 km/h SO (rafales 41) · pluie 1,4 mm');
+    }
+
+    public function testDeletedActivityIsNotReimported(): void
+    {
+        (new Filesystem())->mkdir($this->workDir);
+        $path = $this->workDir.'/a-supprimer.gpx';
+        $points = '';
+        for ($i = 0; $i <= 100; ++$i) {
+            $points .= \sprintf('<trkpt lat="%.7f" lon="-4.0"><time>%s</time></trkpt>', 48 + $i * 10 / 111195, gmdate('Y-m-d\TH:i:s\Z', 1767600000 + $i * 3));
+        }
+        file_put_contents($path, '<?xml version="1.0"?><gpx version="1.1" xmlns="http://www.topografix.com/GPX/1/1"><trk><name>Montre oubliée</name><type>running</type><trkseg>'.$points.'</trkseg></trk></gpx>');
+        $upload = function () use ($path): void {
+            $crawler = $this->client->request('GET', '/import');
+            $form = $crawler->selectButton('Importer')->form();
+            $this->fileField($form)->upload($path);
+            $this->client->submit($form);
+            $this->client->followRedirect();
+        };
+
+        $upload();
+        $crawler = $this->client->request('GET', '/activites');
+        $crawler = $this->client->click($crawler->selectLink('Montre oubliée')->link());
+        self::assertSelectorExists('details.danger-zone:not([open])', 'Confirmation repliée par défaut');
+
+        // Jeton CSRF invalide : refus d'accès (401 tant que l'application n'a pas d'authentification), rien n'est supprimé.
+        $form = $crawler->selectButton('Confirmer la suppression')->form();
+        $this->client->request('POST', (string) $form->getUri(), ['_token' => 'invalide']);
+        self::assertTrue($this->client->getResponse()->isClientError());
+        self::assertSame(1, self::getContainer()->get(ActivityRepository::class)->count());
+
+        $this->client->submit($form);
+        self::assertResponseRedirects('/activites');
+        $this->client->followRedirect();
+        self::assertSelectorTextContains('.alert-success', 'Activité « Montre oubliée » supprimée');
+        self::assertSelectorNotExists('a:contains("Montre oubliée")');
+
+        $upload();
+        self::assertSelectorTextContains('.alert-success', '1 supprimée(s) ignorée(s)');
+        self::assertSame(0, self::getContainer()->get(ActivityRepository::class)->count());
     }
 
     public function testDeletedActivityIsNotReimported(): void

@@ -37,6 +37,11 @@ services:
         class: Symfony\Component\Cache\Adapter\FilesystemAdapter
         arguments: ['ign', 0, '%app.data_dir%/place-cache']
 
+    # Météo heure par heure déjà obtenue (Open-Meteo), par jour et par lieu : même principe.
+    app.weather_cache:
+        class: Symfony\Component\Cache\Adapter\FilesystemAdapter
+        arguments: ['openmeteo', 0, '%app.data_dir%/weather-cache']
+
 when@test:
     parameters:
         # Jamais les réglages du poste de développement pendant les tests.

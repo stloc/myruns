@@ -23,6 +23,10 @@ framework:
             openmeteo.client:
                 base_uri: 'https://api.open-meteo.com'
                 timeout: 20
+            # Météo passée à l'heure de chaque sortie (historique Open-Meteo), service public sans clé.
+            openmeteo_archive.client:
+                base_uri: 'https://archive-api.open-meteo.com'
+                timeout: 20
             # Ville hors de France (Nominatim / OpenStreetMap) : sa charte exige un User-Agent identifiant l'application.
             nominatim.client:
                 base_uri: 'https://nominatim.openstreetmap.org'

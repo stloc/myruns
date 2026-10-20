@@ -58,6 +58,11 @@ tournent aussi sur l'hôte. `ddev start` ne demande `sudo` qu'au tout premier d�
   `parcel`, puis `NominatimReverseGeocoder` hors de France — 1 appel/s et User-Agent imposés par
   la charte OSM, client `nominatim.client`), cache persistant `app.place_cache` par position arrondie à 3 décimales ;
   posée par `replaceTrackData()`, jamais effacée si le service ne répond pas.
+- Météo (`src/Weather/OpenMeteoWeather`) : historique Open-Meteo (client `openmeteo_archive.client`)
+  ou API de prévision pour les 7 derniers jours, au 1er point GPS ; valeurs de l'heure la plus
+  proche du milieu de la sortie (`Weather`, JSON `Activity::$weather`, lu par `weather()`), posée à
+  l'import par `replaceWeather()` (jamais effacée), complétée par `app:weather`. Cache persistant
+  `app.weather_cache` (jour + position à 2 décimales) ; heures pas encore publiées jamais en cache.
 - Carte : trace simplifiée (`RouteSimplifier`, 20 m, ≤ 2 000 points) dans `ActivityRoute` (table
   à part, OneToOne porté par `Activity` avec `orphanRemoval` : SQLite n'applique pas les clés
   étrangères), posée par `replaceTrackData()`. Allure par tronçon calculée en PHP

@@ -19,6 +19,7 @@ use App\Import\Track\SplitCalculator;
 use App\Import\TrackFileParser;
 use App\Repository\ActivityRepository;
 use App\Repository\ActivitySearch;
+use App\Weather\OpenMeteoWeather;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Cache\Adapter\ArrayAdapter;
 use Symfony\Component\Filesystem\Filesystem;
@@ -27,12 +28,15 @@ use Symfony\Component\HttpClient\Response\JsonMockResponse;
 use Symfony\Component\HttpClient\Response\MockResponse;
 
 /**
- * D+ recalculé sur l'altitude du terrain (faux service IGN) à l'import d'une trace GPS.
+ * D+ recalculé sur l'altitude du terrain (faux service IGN), commune et météo (faux Open-Meteo) à
+ * l'import d'une trace GPS.
  */
 final class GroundElevationTest extends KernelTestCase
 {
     private string $workDir;
     private int $requests = 0;
+    /** @var list<string> requêtes reçues par le faux historique météo */
+    private array $weatherRequests = [];
 
     protected function setUp(): void
     {
@@ -69,6 +73,14 @@ final class GroundElevationTest extends KernelTestCase
         $kilometers = $activity->splitsOf(SplitKind::Kilometer);
         self::assertCount(2, $kilometers);
         self::assertEqualsWithDelta($activity->groundElevationGain, ($kilometers[0]->elevationGain ?? 0) + ($kilometers[1]->elevationGain ?? 0), 1.0, 'D+ au km tiré du terrain');
+        $weather = $activity->weather();
+        self::assertNotNull($weather, 'Météo au point de départ');
+        self::assertSame(7.5, $weather->temperature, 'Heure la plus proche du milieu de la sortie (8 h 05)');
+        self::assertSame('Pluie', $weather->conditionLabel());
+        self::assertSame('SO', $weather->windDirectionLabel());
+        self::assertSame(0.8, $weather->precipitation, 'Cumul de l\'heure couverte par la sortie');
+        self::assertCount(1, $this->weatherRequests);
+        self::assertStringContainsString('latitude=48.00&longitude=-4.00&start_date=2026-01-05&end_date=2026-01-05', $this->weatherRequests[0]);
 
         // Réimport : altitudes servies par le cache, rien ne change.
         $second = $importer->import($path);
@@ -76,6 +88,7 @@ final class GroundElevationTest extends KernelTestCase
         self::assertSame(1, $second->unchanged);
         self::assertSame(0, $second->withSplits);
         self::assertSame(2, $this->requests);
+        self::assertCount(1, $this->weatherRequests);
     }
 
     private function importer(): ActivityImporter
@@ -100,6 +113,25 @@ final class GroundElevationTest extends KernelTestCase
         // Sortie en France : les services mondiaux ne doivent pas être appelés.
         $unused = new MockHttpClient(static fn (): MockResponse => throw new \LogicException('Service mondial appelé pour une sortie en France.'));
 
+        // Historique météo du 5 janvier 2026 (UTC) : pluie de 8 h à 9 h.
+        $weather = new MockHttpClient(function (string $method, string $url): JsonMockResponse {
+            $this->weatherRequests[] = $url;
+            $hours = range(0, 23);
+
+            return new JsonMockResponse(['hourly' => [
+                'time' => array_map(static fn (int $h): int => 1767571200 + $h * 3600, $hours),
+                'temperature_2m' => array_map(static fn (int $h): float => 8 === $h ? 7.5 : 5.0, $hours),
+                'apparent_temperature' => array_fill(0, 24, 4.0),
+                'relative_humidity_2m' => array_fill(0, 24, 90),
+                'dew_point_2m' => array_fill(0, 24, 6.0),
+                'precipitation' => array_map(static fn (int $h): float => 9 === $h ? 0.8 : 0.0, $hours),
+                'weather_code' => array_map(static fn (int $h): int => 8 === $h ? 61 : 3, $hours),
+                'wind_speed_10m' => array_fill(0, 24, 18.0),
+                'wind_gusts_10m' => array_fill(0, 24, 35.0),
+                'wind_direction_10m' => array_fill(0, 24, 225),
+            ]]);
+        }, 'https://archive-api.open-meteo.com');
+
         $container = self::getContainer();
 
         return new ActivityImporter(
@@ -109,6 +141,7 @@ final class GroundElevationTest extends KernelTestCase
             new SplitCalculator(),
             new ElevationCorrector(new IgnAltimetry($client, new ArrayAdapter()), new OpenMeteoElevation($unused, new ArrayAdapter(), minIntervalSeconds: 0.0)),
             new CityFinder(new IgnReverseGeocoder($client, new ArrayAdapter()), new NominatimReverseGeocoder($unused, new ArrayAdapter())),
+            new OpenMeteoWeather($weather, $unused, new ArrayAdapter(), minIntervalSeconds: 0.0),
             $this->workDir,
         );
     }

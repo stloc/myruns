@@ -43,6 +43,23 @@
                 </span>
             {% endif %}
         </div>
+        {% set weather = activity.weather %}
+        {% if weather is not null %}
+            <div class="stat-tile" title="Open-Meteo, au point de départ (maille d'environ 10 km), heure la plus proche du milieu de la sortie">
+                <span class="stat-label">Météo</span>
+                <span class="stat-value">{{ weather.temperature|number_format(0) }} °C</span>
+                <span class="stat-detail">
+                    {{ weather.conditionLabel }}
+                    {%- if weather.apparentTemperature is not null %} · ressenti {{ weather.apparentTemperature|number_format(0) }} °C{% endif %}
+                    {%- if weather.humidity is not null %} · humidité {{ weather.humidity }} %{% endif %}
+                </span>
+                <span class="stat-detail">
+                    vent {{ weather.windSpeed|number_format(0) }} km/h{% if weather.windDirectionLabel is not null %} {{ weather.windDirectionLabel }}{% endif %}
+                    {%- if weather.windGusts is not null %} (rafales {{ weather.windGusts|number_format(0) }}){% endif %}
+                    {%- if weather.precipitation > 0 %} · pluie {{ weather.precipitation|number_format(1, ',') }} mm{% endif %}
+                </span>
+            </div>
+        {% endif %}
     </section>
 
     {% if session_review %}

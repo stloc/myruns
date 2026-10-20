@@ -126,6 +126,15 @@ Pendant l'import, chaque trace GPS reçoit :
   charte). Réponses en cache par position arrondie à ~100 m dans `<données>/place-cache` ; colonne
   « Ville » de la liste des activités, recherche par nom **ou** ville. En mer ou sans GPS : « – ». Activités
   importées avant cette version : relancer l'import de l'archive pour obtenir leur ville ;
+- la **météo** pendant la sortie (`src/Weather/`) : historique heure par heure d'**Open-Meteo**
+  (réanalyse ERA5, maille d'environ 10 km, monde entier, sans clé ; API de prévision pour les
+  7 derniers jours, pas encore dans l'historique) au premier point GPS : température, ressenti,
+  humidité, point de rosée, vent et rafales, code météo de l'OMM à l'heure la plus proche du milieu
+  de la sortie, pluie cumulée sur les heures couvertes. Colonne JSON `activity.weather`, jamais
+  effacée si le service ne répond pas ; réponses en cache par jour et position arrondie à ~1 km
+  dans `<données>/weather-cache`. Activités sans météo (importées avant, service injoignable) :
+  `ddev exec bin/console app:weather`, ou réimport de l'archive. Les colonnes météo du CSV Strava
+  ne sont pas lues (rarement remplies, codes de conditions non documentés) ;
 - un type **Trail** si la source le déclare (intervals.icu `TrailRun`, GPX/TCX) ou si le nom
   contient « trail » : le CSV Strava ne donne que l'ancien type « Course à pied », mais le nom
   automatique (« Trail le matin ») garde le type précis. Le sous-sport FIT « trail » est ignoré

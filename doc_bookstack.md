@@ -47,13 +47,14 @@ peut ensuite commenter ce résultat et proposer des conseils d'entraînement.
 | `src/Import/` | Lecture des archives Strava (`activities.csv`) et Garmin (résumé JSON + FIT) et des fichiers GPX/TCX |
 | `src/Elevation/` | Dénivelé recalculé sur l'altitude du terrain (IGN en France, Open-Meteo ailleurs) |
 | `src/Geocoding/` | Ville du départ d'une sortie (IGN en France, Nominatim / OpenStreetMap ailleurs) |
+| `src/Weather/` | Météo pendant une sortie (Open-Meteo : historique heure par heure, partout dans le monde) |
 | `src/Http/` | Garde-fous des services publics appelés à l'import (délai, pannes, cadence) |
 | `src/Entity/`, `src/Repository/` | Activités, profil du coureur, courses officielles (base SQLite) |
 | `src/Settings/` | Clés d'accès saisies dans la page *Réglages* (fichier `settings.json`) |
 | `src/Prediction/` | Niveau de forme (VDOT), projection et pourcentage de réussite |
 | `src/Ai/` | Coach IA : envoi de l'historique au modèle et réponse structurée |
 | `src/Controller/`, `templates/`, `assets/` | Tableau de bord web |
-| `src/Command/` | Commandes `app:import`, `app:predict`, `app:sync` |
+| `src/Command/` | Commandes `app:import`, `app:predict`, `app:sync`, `app:weather` |
 | `desktop/` | Application de bureau Windows et Linux (Tauri) : fenêtre, PHP embarqué, installeurs |
 | `.github/workflows/desktop.yml` | Fabrication des installeurs Windows et Linux à chaque version (tag `v…`) |
 
@@ -88,7 +89,8 @@ flowchart LR
   (le poste lui-même) ; en développement, HTTPS local `mystrava.ddev.site` (routeur DDEV).
 - Flux sortants : HTTPS vers intervals.icu (synchro des séances), vers l'IGN `data.geopf.fr`
   (altitude du terrain et ville du départ, à l'import d'une trace GPS), vers `api.open-meteo.com` et
-  `nominatim.openstreetmap.org` (mêmes informations pour les sorties hors de France), vers `tile.openstreetmap.org` (fond de la
+  `nominatim.openstreetmap.org` (mêmes informations pour les sorties hors de France), vers
+  `archive-api.open-meteo.com` (météo pendant la sortie, à l'import d'une trace GPS), vers `tile.openstreetmap.org` (fond de la
   carte, chargé par le navigateur sur la liste et le détail des activités) et vers l'API Anthropic (seulement quand on
   lance l'analyse IA).
 
@@ -149,6 +151,9 @@ le profil, les courses officielles et les ajustements du programme, non : sauveg
     Quota par minute : au-delà, les traces restantes sont complétées au prochain import.
   - Nominatim / OpenStreetMap (public, gratuit, sans clé) : ville du départ hors de France ; au plus
     un appel par seconde (charte d'utilisation). Réponses gardées dans le dossier `place-cache`.
+  - API météo d'Open-Meteo (public, gratuit pour un usage non commercial, sans clé) : météo heure
+    par heure au point de départ (historique depuis 1940, maille d'environ 10 km ; API de prévision
+    pour la semaine écoulée). Réponses gardées dans le dossier `weather-cache` des données.
   - Tuiles OpenStreetMap (public, gratuit, sans clé) : fond de la carte des départs (liste des
     activités) et de la carte du parcours (détail), demandé par le navigateur à l'affichage. Sans internet, la trace s'affiche sans fond.
   - L'API Strava n'est **pas** utilisée (payante depuis juin 2026, usage IA interdit).
@@ -158,7 +163,7 @@ le profil, les courses officielles et les ajustements du programme, non : sauveg
 1. L'utilisateur télécharge son archive Strava ou Garmin Connect, ou laisse un outil tiers remplir un dossier de traces.
 2. L'import (page *Import* ou `app:import`) lit `activities.csv` (Strava) ou le résumé des
    activités (Garmin) et les traces `.fit`/`.gpx`/`.tcx`
-   (y compris `.gz`) : temps de passage, FC tenue, D+ recalculé sur le terrain (IGN, Open-Meteo hors de France), ville du départ (IGN, OpenStreetMap hors de France) et trace simplifiée pour la carte.
+   (y compris `.gz`) : temps de passage, FC tenue, D+ recalculé sur le terrain (IGN, Open-Meteo hors de France), ville du départ (IGN, OpenStreetMap hors de France), météo (Open-Meteo) et trace simplifiée pour la carte.
    Depuis la page web, une grosse archive s'importe par étapes : les activités apparaissent tout de suite,
    puis une barre de progression suit la lecture des traces (jusqu'à une vingtaine de minutes pour 600 traces la première fois ; un réimport ne prend que quelques secondes et peut se terminer sans afficher la barre).
 3. Chaque activité est ajoutée ou mise à jour en base ; une sortie déjà connue n'est pas dupliquée.
@@ -190,6 +195,7 @@ le profil, les courses officielles et les ajustements du programme, non : sauveg
 |---|---|
 | `ddev exec bin/console app:sync` | Récupère les nouvelles séances depuis intervals.icu |
 | `ddev exec bin/console app:import [chemin]` | Import d'une archive ou d'un dossier |
+| `ddev exec bin/console app:weather` | Complète la météo des sorties GPS qui n'en ont pas |
 | `ddev exec bin/console app:predict 10k 45:00 2026-12-15 --ai` | Prédiction en ligne de commande |
 
 ## Diagnostic
@@ -323,6 +329,13 @@ le profil, les courses officielles et les ajustements du programme, non : sauveg
 - **Colonne « Ville » vide (« – »)** → sortie sans GPS (tapis, CSV seul), départ en mer, service
   de géocodage injoignable lors de l'import, ou activité importée avant l'ajout de la ville →
   relancer l'import de l'archive Strava (ou une synchro) : les villes manquantes sont complétées.
+- **Pas de case « Météo » sur le détail d'une activité** → sortie sans GPS (tapis, piscine, CSV
+  seul), Open-Meteo injoignable lors de l'import, ou activité importée avant l'ajout de la météo →
+  relancer l'import de l'archive (ou `app:weather` sur le poste de développement) : les météos
+  manquantes sont complétées. Une sortie du jour même peut ne pas encore en avoir : réessayer le lendemain.
+- **Météo différente de ce qu'on a vécu** → valeurs d'un modèle météo (maille d'environ 10 km,
+  à l'heure près), pas d'une station au bord du parcours : normal pour une averse locale ou un
+  relief marqué.
 - **Le nombre d'activités n'augmente pas après un import** → les sorties étaient déjà connues
   (« déjà connue(s) » dans le résumé) : comportement normal.
 
@@ -428,7 +441,8 @@ flèches pour naviguer, Entrée pour valider, Échap pour revenir, Ctrl+C pour q
   ouvre la liste des sorties, les 30 plus récentes. Survol d'un point : nom, date, distance ;
   clic : détail de la sortie.
 - **Détail d'une activité** : résumé (distance, temps, allure, FC, D+ ; « altitude du terrain » quand le
-  D+ a été recalculé sur le relief, avec la valeur enregistrée par la montre), carte du parcours
+  D+ a été recalculé sur le relief, avec la valeur enregistrée par la montre ; météo pendant la sortie :
+  température, ciel, ressenti, humidité, vent et rafales, pluie tombée), carte du parcours
   (trace colorée du plus lent au plus rapide : vert, bleu, violet, orange, rouge — vitesse pour le vélo —, arrêts en
   pointillés gris, point vert au départ ; survoler la trace affiche l'allure ; zoom avec les
   boutons + / −), bloc **Même parcours** quand la boucle a déjà été faite (classement au temps de
