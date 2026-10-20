@@ -7,12 +7,11 @@ analyse complémentaire par IA ([Symfony AI](https://ai.symfony.com/)).
 > Utilisateur de l'application de bureau, sans connaissances techniques ? Voir le
 > **[guide de démarrage](GUIDE.md)** (montre → intervals.icu → MyRuns, pas à pas).
 
-Trois façons de l'utiliser :
+Deux façons de l'utiliser :
 
 - une **application de bureau** Windows ou Linux à installer (fenêtre Tauri, PHP embarqué,
   données sur le PC de chacun) : voir [Application de bureau](#application-de-bureau) ;
-- un **dashboard web** : <https://mystrava.ddev.site> ;
-- une **interface terminal** ([symfony/tui](https://symfony.com/packages/tui)) : `ddev exec bin/console tui`.
+- un **dashboard web** : <https://mystrava.ddev.site>.
 
 Stack : Symfony 8.1, PHP 8.4, SQLite (Doctrine ORM 3), Twig + AssetMapper (sans build JS),
 Symfony AI 0.14 + Anthropic ; développement sous DDEV, application de bureau Tauri 2.
@@ -150,7 +149,6 @@ résolu depuis la racine du projet. L'import est idempotent, donc planifiable (c
 | Import | `/import` |
 | Profil (FC, âge, ancienneté, poids, courses officielles) | `/profil` |
 | Réglages (clés intervals.icu et Anthropic) | `/reglages` |
-| Interface terminal | `ddev exec bin/console tui` |
 | Prédiction en ligne de commande | `ddev exec bin/console app:predict 10k 45:00 2026-12-15 --ai` |
 
 Pas d'authentification : l'application est prévue pour un usage local (DDEV ou application de
@@ -193,8 +191,6 @@ Essai local sous Linux (PHP du poste avec `pdo_sqlite`, ou `MYRUNS_PHP=/chemin/p
 COMPOSER_HOME="$(mktemp -d)" bin/prepare-desktop-app
 cd desktop/src-tauri && cargo tauri dev
 ```
-
-L'interface terminal n'est pas livrée sous Windows (`symfony/tui` s'appuie sur `stty`).
 
 Un `.deb` construit sur un poste dont l'uid dépasse 6 chiffres (compte de domaine) est illisible
 (champ uid du format `ar`) : le fabriquer sur GitHub Actions.
@@ -288,7 +284,6 @@ stocké :
 | `src/Ai/` | Coach IA (sortie structurée `CoachAnalysis`) |
 | `src/Controller/`, `src/Form/`, `templates/`, `assets/` | Dashboard web |
 | `src/Chart/ColumnChart.php` | Géométrie de l'histogramme SVG (rendu sans JS) |
-| `src/Tui/MyRunsApp.php` | Interface terminal |
 | `desktop/` | Application de bureau Windows et Linux (Tauri) |
 
 ## Qualité

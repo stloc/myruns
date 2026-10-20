@@ -1,7 +1,7 @@
 # CLAUDE.md — MyRuns
 
 Application personnelle : import d'activités Strava (export de compte ZIP, dossiers GPX/TCX),
-dashboard web, interface terminal et application de bureau Windows et Linux (Tauri), prédiction de
+dashboard web, commandes console et application de bureau Windows et Linux (Tauri), prédiction de
 réussite d'un objectif chrono (VDOT + coach IA).
 
 ## Stack (vérifiée dans composer.lock)
@@ -10,7 +10,6 @@ réussite d'un objectif chrono (VDOT + coach IA).
 - Application de bureau : **Tauri 2** (`desktop/`, Rust), PHP embarqué ; installeur NSIS (Windows),
   `.deb` + AppImage (Linux, PHP statique static-php-cli « common », sans intl), construits par
   GitHub Actions (`.github/workflows/desktop.yml`, sur tag `v*`)
-- `symfony/tui` 8.1 (**expérimental**, hors promesse de rétrocompatibilité)
 - `symfony/ai-bundle` + `symfony/ai-anthropic-platform` **0.14** (pré-1.0 : vérifier l'API dans `vendor/`)
 - Twig + AssetMapper (pas de build JS, pas de Stimulus) ; graphiques en SVG rendus côté serveur
 
@@ -100,8 +99,7 @@ tournent aussi sur l'hôte. `ddev start` ne demande `sudo` qu'au tout premier d�
   cache et logs vont dans le dossier de données.
 - Application de bureau : `bin/prepare-desktop-app` (liste blanche de fichiers : jamais `imports/`,
   `var/`, `.env.local`) ; PHP Windows et PHP Linux figés par version + SHA256 dans le workflow ; aucune
-  extension PHP au-delà de celles du build Linux (pas d'`intl` : polyfills Symfony). Pas de TUI sous
-  Windows.
+  extension PHP au-delà de celles du build Linux (pas d'`intl` : polyfills Symfony).
 - Profil (`AthleteProfile`, une seule ligne, `AthleteProfileRepository::current()`) : tous les
   champs facultatifs ; **sans profil, les résultats doivent rester identiques** (tests existants).
   Les effets du profil sont figés par `tests/Integration/ProfileImpactTest.php` (valeurs calculées
@@ -114,14 +112,13 @@ tournent aussi sur l'hôte. `ddev start` ne demande `sudo` qu'au tout premier d�
 - Nom **MyRuns** (ex-MyStrava ; le dépôt et le projet DDEV `mystrava.ddev.site` gardent l'ancien
   nom). Pas de charte Strava : accent sarcelle, jamais l'orange Strava. L'app de bureau reprend une
   fois les données de l'ancien nom (`adopt_mystrava_data()` dans `desktop/src-tauri/src/main.rs`).
-- Widgets TUI : `SelectListWidget` tronque le libellé à 30 colonnes → métriques dans `description`.
 - Pas d'authentification (usage local : DDEV, ou app de bureau sur `127.0.0.1`) : à ajouter
   avant toute exposition.
 
 ## Commandes
 
 ```bash
-ddev exec bin/console tui | app:import [chemin] | app:predict <distance> <temps> <date> [--ai]
+ddev exec bin/console app:import [chemin] | app:predict <distance> <temps> <date> [--ai]
 vendor/bin/php-cs-fixer fix && vendor/bin/phpstan analyse
 php bin/console lint:twig templates/ && php bin/console lint:yaml config/ && php bin/console lint:container
 ddev exec bin/console doctrine:schema:validate && ddev exec vendor/bin/phpunit

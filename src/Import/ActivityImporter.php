@@ -58,7 +58,7 @@ final class ActivityImporter
     }
 
     /**
-     * Import complet en une fois (ligne de commande, TUI).
+     * Import complet en une fois (ligne de commande).
      *
      * @param string                          $path       chemin absolu, ou relatif au dossier du projet (seul dossier visible sous DDEV)
      * @param (\Closure(int, int): void)|null $onProgress appelé après chaque lot de traces (traitées, total)

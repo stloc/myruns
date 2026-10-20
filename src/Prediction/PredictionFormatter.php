@@ -8,7 +8,7 @@ use App\Ai\CoachAnalysis;
 use App\Util\Units;
 
 /**
- * Mise en forme texte (sans balisage) des résultats, partagée par la TUI et les commandes.
+ * Mise en forme texte (sans balisage) des résultats, pour les commandes.
  */
 final class PredictionFormatter
 {

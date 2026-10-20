@@ -12,7 +12,6 @@ de développement, ou depuis un terminal.
 | Application Windows | Menu Démarrer → **MyRuns** (installeur publié sur la page *Releases* du dépôt GitHub) |
 | Application Linux | Menu des applications → **MyRuns** (`.deb` ou AppImage, même page *Releases*) |
 | Poste de développement (DDEV) | [https://mystrava.ddev.site](https://mystrava.ddev.site) |
-| Interface terminal | `ddev exec bin/console tui`, dans le dossier du projet |
 
 Chaque personne a sa propre installation et ses propres données : rien n'est partagé entre les
 utilisateurs.
@@ -54,8 +53,7 @@ peut ensuite commenter ce résultat et proposer des conseils d'entraînement.
 | `src/Prediction/` | Niveau de forme (VDOT), projection et pourcentage de réussite |
 | `src/Ai/` | Coach IA : envoi de l'historique au modèle et réponse structurée |
 | `src/Controller/`, `templates/`, `assets/` | Tableau de bord web |
-| `src/Tui/` | Interface terminal |
-| `src/Command/` | Commandes `tui`, `app:import`, `app:predict`, `app:sync` |
+| `src/Command/` | Commandes `app:import`, `app:predict`, `app:sync` |
 | `desktop/` | Application de bureau Windows et Linux (Tauri) : fenêtre, PHP embarqué, installeurs |
 | `.github/workflows/desktop.yml` | Fabrication des installeurs Windows et Linux à chaque version (tag `v…`) |
 
@@ -69,7 +67,6 @@ flowchart LR
     I --> S[("Base SQLite<br/>myruns.db")]
     S --> P["Calcul de forme<br/>et probabilité"]
     P --> W["Tableau de bord web"]
-    P --> T["Interface terminal"]
     P --> C["Coach IA<br/>(optionnel)"]
     C --> W
     C --> T
@@ -83,7 +80,6 @@ flowchart LR
 - Poste de développement : servi par DDEV (nginx + PHP-FPM)
 - Base SQLite (un fichier `myruns.db` par installation), Doctrine ORM
 - Pages web en Twig, sans framework JavaScript ; graphiques dessinés côté serveur
-- Composant `symfony/tui` (expérimental) pour l'interface terminal
 - Symfony AI 0.14 avec la plateforme Anthropic pour le coach IA
 
 ## Schéma réseau
@@ -191,7 +187,6 @@ le profil, les courses officielles et les ajustements du programme, non : sauveg
 
 | Commande | Contenu |
 |---|---|
-| `ddev exec bin/console tui` | Interface terminal |
 | `ddev exec bin/console app:sync` | Récupère les nouvelles séances depuis intervals.icu |
 | `ddev exec bin/console app:import [chemin]` | Import d'une archive ou d'un dossier |
 | `ddev exec bin/console app:predict 10k 45:00 2026-12-15 --ai` | Prédiction en ligne de commande |
@@ -248,8 +243,6 @@ le profil, les courses officielles et les ajustements du programme, non : sauveg
   → aucune course de 3 km ou plus sur la période → importer une archive plus récente.
 - **« Analyse IA indisponible : … »** → clé Anthropic absente ou invalide (page *Réglages*), ou
   pas de connexion internet → vérifier la clé ; le pourcentage statistique reste affiché.
-- **« L'interface terminal nécessite un terminal interactif. »** → `tui` lancé depuis un script
-  ou une tâche planifiée → utiliser `app:import` / `app:predict` dans ce cas.
 - **« La FC de repos doit être nettement inférieure à la FC max. »** → valeurs inversées ou
   FC de repos trop haute → corriger la saisie (FC de repos au réveil, en général 40 à 70).
 - **« La course doit déjà avoir eu lieu. »** → une course officielle se saisit après coup ;
