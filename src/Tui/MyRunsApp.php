@@ -110,7 +110,7 @@ final class MyRunsApp
     {
         $menu = new SelectListWidget([
             ['value' => 'activities', 'label' => 'Activités récentes', 'description' => 'Les dernières sorties importées'],
-            ['value' => 'import', 'label' => 'Importer', 'description' => 'Export Strava (ZIP ou dossier) ou dossier GPX/TCX'],
+            ['value' => 'import', 'label' => 'Importer', 'description' => 'Export Strava/Garmin (ZIP, dossier) ou GPX/TCX'],
             ['value' => 'goal', 'label' => 'Objectif & prédiction', 'description' => 'Probabilité de réussir un chrono à une date'],
             ['value' => 'quit', 'label' => 'Quitter', 'description' => ''],
         ], maxVisible: 6);
@@ -169,7 +169,7 @@ final class MyRunsApp
             }, fn () => $this->showImport());
         });
 
-        $this->setBody($input, 'Archive export_XXXX.zip, dossier décompressé ou dossier de traces GPX/TCX.');
+        $this->setBody($input, 'Archive Strava ou Garmin (.zip), dossier décompressé ou dossier de traces GPX/TCX.');
     }
 
     private function startGoal(): void

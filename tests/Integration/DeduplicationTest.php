@@ -45,6 +45,38 @@ final class DeduplicationTest extends KernelTestCase
         self::assertSame(1, $repository->count());
     }
 
+    public function testStravaAndGarminExportsOfTheSameSessionKeepTheFirstImported(): void
+    {
+        self::bootKernel();
+        $repository = self::getContainer()->get(ActivityRepository::class);
+        $start = new \DateTimeImmutable('2019-11-03 12:51:46', new \DateTimeZone('UTC'));
+
+        $repository->upsert($this->activity('garmin:1', ActivityRepository::SOURCE_GARMIN, $start));
+        $csv = $repository->upsert($this->activity('2', ActivityRepository::SOURCE_CSV, $start->modify('+30 seconds')));
+        $track = $repository->upsert($this->activity('file:run.fit', ActivityRepository::SOURCE_FILE, $start->modify('+20 seconds')));
+        $repository->flush();
+
+        self::assertSame(UpsertOutcome::Unchanged, $csv->outcome);
+        self::assertSame('garmin:1', $csv->activity->id);
+        self::assertSame(UpsertOutcome::Unchanged, $track->outcome);
+        self::assertSame('garmin:1', $track->activity->id);
+        self::assertSame(1, $repository->count());
+    }
+
+    public function testTwoGarminActivitiesOneMinuteApartAreBothKept(): void
+    {
+        self::bootKernel();
+        $repository = self::getContainer()->get(ActivityRepository::class);
+        $start = new \DateTimeImmutable('2019-11-03 12:51:46', new \DateTimeZone('UTC'));
+
+        $repository->upsert($this->activity('garmin:1', ActivityRepository::SOURCE_GARMIN, $start));
+        $second = $repository->upsert($this->activity('garmin:2', ActivityRepository::SOURCE_GARMIN, $start->modify('+1 minute')));
+        $repository->flush();
+
+        self::assertSame(UpsertOutcome::Created, $second->outcome);
+        self::assertSame(2, $repository->count());
+    }
+
     private function activity(string $id, string $source, \DateTimeImmutable $start): Activity
     {
         return new Activity($id, $source, 'Footing', Sport::Run, $start, 8000, 2700, 2760);

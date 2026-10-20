@@ -49,6 +49,9 @@ intervals.icu :
    FC au repos, sommeil), valider.
 4. intervals.icu vous prévient par e-mail quand c'est terminé.
 
+Plus rapide : une fois MyRuns installé, importer directement ce fichier `.zip` (sans le
+décompresser) dans MyRuns, menu **Import** → **Envoyer un fichier**.
+
 **Avec une autre marque** : regarder dans *Settings* d'intervals.icu, sur la connexion de votre
 montre, s'il y a une option d'import de l'historique.
 

@@ -122,6 +122,7 @@ final class ImportJobs
         if (null !== $file) {
             $this->filesystem->remove($file);
         }
+        $this->importer->cleanUp($job->path);
         if ($job->temporary) {
             $this->filesystem->remove($job->path);
         }

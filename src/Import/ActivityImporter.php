@@ -21,10 +21,13 @@ use Symfony\Component\Finder\Finder;
 /**
  * Importe les activités depuis :
  *  - l'archive ZIP de l'export de compte Strava (ou le dossier décompressé) : activities.csv + traces ;
+ *  - l'archive ZIP de l'export de compte Garmin Connect (ou le dossier décompressé) : résumé JSON
+ *    (*_summarizedActivities.json) + FIT des archives UploadedFiles_*.zip qu'elle contient ;
  *  - un dossier de fichiers FIT/GPX/TCX alimenté par Tapiriik, une extension navigateur, etc.
  *
  * Le CSV fait foi pour le résumé ; les traces apportent les temps de passage et la FC tenue,
- * rattachés à la ligne du CSV par le nom du fichier (colonne « Nom du fichier »).
+ * rattachés à la ligne du CSV par le nom du fichier (colonne « Nom du fichier »). Le résumé Garmin
+ * ne cite pas ses FIT : chacun rejoint sa ligne par l'heure de départ (ActivityRepository::upsert()).
  * L'import est idempotent : on peut le relancer régulièrement (cron) sur le même dossier.
  *
  * Les traces sont lentes à la 1ʳᵉ lecture (appels IGN) : la page web les lit par étapes
@@ -35,6 +38,8 @@ final class ActivityImporter
     private const TRACK_PATTERNS = ['*.fit', '*.gpx', '*.tcx', '*.fit.gz', '*.gpx.gz', '*.tcx.gz'];
     /** Durée d'un lot en ligne de commande, entre deux enregistrements en base. */
     private const CLI_BATCH_SECONDS = 30.0;
+    /** Archives des FIT dans l'export Garmin (DI_CONNECT/DI-Connect-Uploaded-Files/). */
+    private const GARMIN_UPLOADS = 'UploadedFiles_*.zip';
 
     /** @var array<string, Activity> activités du CSV indexées par fichier de trace, pour l'import en cours */
     private array $byTrackFile = [];
@@ -48,6 +53,7 @@ final class ActivityImporter
         private readonly CityFinder $geocoder,
         #[Autowire('%kernel.project_dir%')] private readonly string $projectDir,
         private readonly RouteSimplifier $routeSimplifier = new RouteSimplifier(),
+        private readonly GarminExportParser $garminParser = new GarminExportParser(),
     ) {
     }
 
@@ -74,12 +80,13 @@ final class ActivityImporter
                 $onProgress($done, $total);
             }
         }
+        $this->cleanUp($path);
 
         return $result;
     }
 
     /**
-     * 1ʳᵉ étape : importe les résumés (activities.csv), rapides, et compte les traces à lire ensuite.
+     * 1ʳᵉ étape : importe les résumés (activities.csv, résumé Garmin), rapides, et compte les traces à lire ensuite.
      *
      * @return int nombre de traces à passer à continue()
      */
@@ -88,7 +95,7 @@ final class ActivityImporter
         $path = $this->resolve($path);
 
         if (is_file($path) && self::isZip($path)) {
-            $this->importZipCsv($path, $result);
+            $this->importZipSummaries($path, $result);
         } elseif (is_dir($path)) {
             foreach ((new Finder())->files()->in($path)->name('activities.csv')->sortByName() as $csv) {
                 $stream = fopen($csv->getPathname(), 'r');
@@ -97,11 +104,14 @@ final class ActivityImporter
                     fclose($stream);
                 }
             }
+            foreach ((new Finder())->files()->in($path)->name('*summarizedActivities.json')->sortByName() as $json) {
+                $this->importGarminSummaries($json->getContents(), $result);
+            }
             foreach ($this->nestedZips($path) as $zip) {
-                $this->importZipCsv($zip, $result);
+                $this->importZipSummaries($zip, $result);
             }
         } elseif (!is_file($path) || !TrackFileParser::supports($path)) {
-            throw new \InvalidArgumentException(\sprintf('« %s » n\'est ni une archive ZIP Strava, ni un dossier, ni un fichier FIT/GPX/TCX.', $path));
+            throw new \InvalidArgumentException(\sprintf('« %s » n\'est ni une archive ZIP Strava ou Garmin, ni un dossier, ni un fichier FIT/GPX/TCX.', $path));
         }
 
         $this->activities->flush();
@@ -137,6 +147,20 @@ final class ActivityImporter
         $this->activities->flush();
 
         return $position;
+    }
+
+    /**
+     * Efface les archives imbriquées extraites pour l'import de $path (FIT de l'export Garmin).
+     */
+    public function cleanUp(string $path): void
+    {
+        $path = $this->resolve($path);
+        $archives = is_dir($path) ? $this->nestedZips($path) : [$path];
+        foreach ($archives as $archive) {
+            foreach (glob(self::extractionPrefix($archive).'-*.zip') ?: [] as $extracted) {
+                @unlink($extracted);
+            }
+        }
     }
 
     private function resolve(string $path): string
@@ -176,19 +200,26 @@ final class ActivityImporter
     }
 
     /**
+     * Archives posées à la racine du dossier, et celles des FIT de l'export Garmin décompressé.
+     *
      * @return list<string>
      */
     private function nestedZips(string $directory): array
     {
         $zips = [];
-        foreach ((new Finder())->files()->in($directory)->depth(0)->name('*.zip')->sortByName() as $zip) {
-            $zips[] = $zip->getPathname();
+        foreach ((new Finder())->files()->in($directory)->depth(0)->name('*.zip') as $zip) {
+            $zips[$zip->getPathname()] = true;
         }
+        foreach ((new Finder())->files()->in($directory)->name(self::GARMIN_UPLOADS) as $zip) {
+            $zips[$zip->getPathname()] = true;
+        }
+        $zips = array_keys($zips);
+        sort($zips);
 
         return $zips;
     }
 
-    private function importZipCsv(string $path, ImportResult $result): void
+    private function importZipSummaries(string $path, ImportResult $result): void
     {
         $zip = $this->openZip($path);
         try {
@@ -200,6 +231,8 @@ final class ActivityImporter
                         $this->importCsv($stream, $result);
                         fclose($stream);
                     }
+                } elseif (GarminExportParser::supports($name)) {
+                    $this->importGarminSummaries((string) $zip->getFromIndex($i), $result);
                 }
             }
         } finally {
@@ -208,9 +241,13 @@ final class ActivityImporter
     }
 
     /**
+     * Traces de l'archive, y compris celles des archives qu'elle contient (export Garmin : FIT dans
+     * UploadedFiles_*.zip). Une archive imbriquée est extraite une fois dans le dossier temporaire,
+     * réutilisée d'une étape à l'autre, puis effacée par cleanUp().
+     *
      * @return \Generator<string, \Closure(): string>
      */
-    private function zipTracks(string $path): \Generator
+    private function zipTracks(string $path, bool $withNested = true): \Generator
     {
         $zip = $this->openZip($path);
         try {
@@ -219,11 +256,47 @@ final class ActivityImporter
                 if (TrackFileParser::supports($name)) {
                     $index = $i;
                     yield $name => static fn (): string => (string) $zip->getFromIndex($index);
+                } elseif ($withNested && self::isZip($name)) {
+                    yield from $this->zipTracks($this->extract($zip, $i, $path), false);
                 }
             }
         } finally {
             $zip->close();
         }
+    }
+
+    private function extract(\ZipArchive $zip, int $index, string $archive): string
+    {
+        $target = self::extractionPrefix($archive).'-'.$index.'.zip';
+        $stat = $zip->statIndex($index);
+        if (is_file($target) && false !== $stat && filesize($target) === $stat['size']) {
+            return $target;
+        }
+
+        $source = $zip->getStream((string) $zip->getNameIndex($index));
+        $destination = fopen($target, 'w');
+        if (false === $source || false === $destination) {
+            throw new \RuntimeException(\sprintf('Impossible d\'extraire « %s » de l\'archive.', $zip->getNameIndex($index)));
+        }
+        try {
+            stream_copy_to_stream($source, $destination);
+        } finally {
+            fclose($source);
+            fclose($destination);
+        }
+
+        return $target;
+    }
+
+    /**
+     * Préfixe des archives extraites de $archive : change avec son contenu (taille, date).
+     */
+    private static function extractionPrefix(string $archive): string
+    {
+        $real = realpath($archive);
+        $key = false === $real ? $archive : $real.'|'.filesize($real).'|'.filemtime($real);
+
+        return sys_get_temp_dir().'/myruns-'.substr(sha1($key), 0, 16);
     }
 
     private function openZip(string $path): \ZipArchive
@@ -242,6 +315,13 @@ final class ActivityImporter
     private function importCsv($stream, ImportResult $result): void
     {
         foreach ($this->csvParser->parse($stream) as $activity) {
+            $this->count($this->activities->upsert($activity)->outcome, $result);
+        }
+    }
+
+    private function importGarminSummaries(string $json, ImportResult $result): void
+    {
+        foreach ($this->garminParser->parse($json) as $activity) {
             $this->count($this->activities->upsert($activity)->outcome, $result);
         }
     }

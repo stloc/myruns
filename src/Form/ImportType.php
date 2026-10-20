@@ -18,8 +18,8 @@ final class ImportType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder->add('file', FileType::class, [
-            'label' => 'Archive Strava ou trace',
-            'help' => 'export_XXXX.zip reçu par e-mail, ou fichier .gpx / .tcx',
+            'label' => 'Archive Strava ou Garmin, ou trace',
+            'help' => 'Archive .zip reçue par e-mail (Strava ou Garmin Connect), ou fichier .gpx / .tcx',
             'attr' => ['accept' => '.zip,.gpx,.tcx,.gz'],
         ]);
     }

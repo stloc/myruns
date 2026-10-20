@@ -19,8 +19,8 @@ utilisateurs.
 
 ## Objet / Contexte
 
-L'API Strava n'est pas utilisée. MyRuns lit l'**archive officielle** que Strava envoie par e-mail
-sur demande, ainsi que des dossiers de traces GPS (GPX/TCX) remplis par des outils tiers
+L'API Strava n'est pas utilisée. MyRuns lit l'**archive officielle** que Strava ou Garmin Connect
+envoie par e-mail sur demande, ainsi que des dossiers de traces GPS (GPX/TCX) remplis par des outils tiers
 (Tapiriik, extension de navigateur).
 
 À partir des sorties des 12 dernières semaines, l'application calcule un niveau de forme, le
@@ -36,6 +36,7 @@ peut ensuite commenter ce résultat et proposer des conseils d'entraînement.
 <span style="text-decoration: underline;">**Externes**</span>
 
 - Strava : export de compte depuis les paramètres du compte
+- Garmin Connect : export des données depuis *Compte* → *Gestion des données*
 - Anthropic (Claude) : modèle utilisé par le coach IA — [documentation](https://docs.anthropic.com)
 
 # Architecture
@@ -44,7 +45,7 @@ peut ensuite commenter ce résultat et proposer des conseils d'entraînement.
 
 | Répertoire | Rôle |
 |---|---|
-| `src/Import/` | Lecture de l'archive Strava (`activities.csv`) et des fichiers GPX/TCX |
+| `src/Import/` | Lecture des archives Strava (`activities.csv`) et Garmin (résumé JSON + FIT) et des fichiers GPX/TCX |
 | `src/Elevation/` | Dénivelé recalculé sur l'altitude du terrain (IGN en France, Open-Meteo ailleurs) |
 | `src/Geocoding/` | Ville du départ d'une sortie (IGN en France, Nominatim / OpenStreetMap ailleurs) |
 | `src/Http/` | Garde-fous des services publics appelés à l'import (délai, pannes, cadence) |
@@ -63,6 +64,7 @@ peut ensuite commenter ce résultat et proposer des conseils d'entraînement.
 ```mermaid
 flowchart LR
     A["Archive Strava<br/>export_XXXX.zip"] --> I["Import"]
+    G["Archive Garmin Connect<br/>.zip"] --> I
     B["Dossier GPX / TCX<br/>Tapiriik, extension"] --> I
     I --> S[("Base SQLite<br/>myruns.db")]
     S --> P["Calcul de forme<br/>et probabilité"]
@@ -156,8 +158,9 @@ le profil, les courses officielles et les ajustements du programme, non : sauveg
 
 ## Flux
 
-1. L'utilisateur télécharge son archive Strava, ou laisse un outil tiers remplir un dossier de traces.
-2. L'import (page *Import* ou `app:import`) lit `activities.csv` et les traces `.fit`/`.gpx`/`.tcx`
+1. L'utilisateur télécharge son archive Strava ou Garmin Connect, ou laisse un outil tiers remplir un dossier de traces.
+2. L'import (page *Import* ou `app:import`) lit `activities.csv` (Strava) ou le résumé des
+   activités (Garmin) et les traces `.fit`/`.gpx`/`.tcx`
    (y compris `.gz`) : temps de passage, FC tenue, D+ recalculé sur le terrain (IGN, Open-Meteo hors de France), ville du départ (IGN, OpenStreetMap hors de France) et trace simplifiée pour la carte.
    Depuis la page web, une grosse archive s'importe par étapes : les activités apparaissent tout de suite,
    puis une barre de progression suit la lecture des traces (jusqu'à une vingtaine de minutes pour 600 traces la première fois ; un réimport ne prend que quelques secondes et peut se terminer sans afficher la barre).
@@ -217,8 +220,9 @@ le profil, les courses officielles et les ajustements du programme, non : sauveg
 - **« no such table: activity »** (développement) → migrations non appliquées →
   `ddev exec bin/console doctrine:migrations:migrate -n`. L'application Windows les applique
   seule à l'ouverture.
-- **« Formats acceptés : archive Strava .zip, .gpx, .tcx (éventuellement .gz). »** → fichier
-  envoyé non pris en charge → envoyer l'archive `export_XXXX.zip` ou une trace GPX/TCX.
+- **« Formats acceptés : archive Strava ou Garmin .zip, .gpx, .tcx (éventuellement .gz). »** →
+  fichier envoyé non pris en charge → envoyer l'archive `.zip` reçue de Strava ou Garmin (sans la
+  décompresser) ou une trace GPX/TCX.
 - **« Fichier trop volumineux »** → archive de plus de 1 Go → sur le poste de développement, la
   décompresser dans `imports/` et utiliser « Importer le dossier » (encart « Fichiers déjà sur ce
   poste ») ; sinon transmettre au développeur.
@@ -227,8 +231,16 @@ le profil, les courses officielles et les ajustements du programme, non : sauveg
   développement : renseigner `STRAVA_EXPORT_PATH` (par exemple `imports`).
 - **« Indiquez un chemin, ou renseignez STRAVA_EXPORT_PATH dans .env.local. »** (`app:import`) →
   commande lancée sans chemin ni dossier configuré → passer le chemin de l'archive en argument.
-- **« … n'est ni une archive ZIP Strava, ni un dossier, ni un fichier GPX/TCX. »** → chemin
+- **« … n'est ni une archive ZIP Strava ou Garmin, ni un dossier, ni un fichier FIT/GPX/TCX. »** → chemin
   erroné. Sous DDEV, seul le dossier du projet est visible : placer les fichiers dans `imports/`.
+- **« Résumé des activités Garmin illisible : … »** → archive Garmin abîmée (téléchargement
+  interrompu) → la retélécharger depuis le lien reçu par e-mail ; si l'erreur persiste, transmettre
+  le message au développeur.
+- **Import d'une archive Garmin : « 0 nouvelle(s) » alors que l'archive est volumineuse** → les
+  sorties étaient déjà connues (archive Strava ou synchro intervals.icu de la même sortie) →
+  comportement normal : une sortie n'est jamais importée deux fois.
+- **Activité Garmin sans nom** → Garmin n'exporte pas le nom des sorties anciennes (avant 2016
+  environ) → comportement normal.
 - **« Colonne « … » introuvable dans activities.csv : export Strava non reconnu. »** → le CSV
   n'est pas celui de l'export Strava, ou son format a changé → refaire un export ; si l'erreur
   persiste, transmettre la première ligne du fichier au développeur.
@@ -270,7 +282,7 @@ le profil, les courses officielles et les ajustements du programme, non : sauveg
   courses et l'âge affinent l'estimation (détail dans les « facteurs » sous le résultat).
 - **« Pas de trace GPS ou de capteur de distance pour cette activité… »** sur le détail →
   l'activité vient d'un import du seul CSV, ou n'a pas de trace (natation, saisie manuelle) →
-  réimporter l'archive Strava complète (avec le dossier `activities/`).
+  réimporter l'archive Strava complète (avec le dossier `activities/`) ou l'archive Garmin.
 - **Pas de carte « Parcours » sur le détail d'une activité** → l'activité a été importée avant
   l'ajout de la carte, n'a pas de positions GPS (tapis, home-trainer, CSV seul) ou est une séance de
   natation → réimporter l'archive Strava complète ou lancer une synchro ; sans GPS, pas de carte (normal).
@@ -505,6 +517,14 @@ Guide détaillé à transmettre à l'utilisateur : `GUIDE.md` du dépôt.
 2. Attendre l'e-mail de Strava, télécharger `export_XXXX.zip`.
 3. Sur [https://mystrava.ddev.site/import](https://mystrava.ddev.site/import), choisir le fichier
    puis **Importer**.
+
+**Récupérer son archive Garmin Connect et l'importer**
+
+1. Sur garmin.com, connecté à son compte : *Compte* → *Gestion des données* → *Exporter vos
+   données* → **Demander l'export**.
+2. Attendre l'e-mail de Garmin (jusqu'à plusieurs jours), télécharger le fichier `.zip`.
+3. Menu **Import** : choisir ce fichier **sans le décompresser**, puis **Importer**. Les sorties
+   déjà importées depuis Strava ou intervals.icu ne sont pas dupliquées.
 
 **Récupérer ses nouvelles séances**
 

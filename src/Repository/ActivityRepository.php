@@ -20,6 +20,9 @@ final class ActivityRepository extends ServiceEntityRepository
 {
     public const SOURCE_CSV = 'strava_csv';
     public const SOURCE_FILE = 'track_file';
+    public const SOURCE_GARMIN = 'garmin_export';
+    /** Résumés d'un export de compte : plus complets qu'une trace, jamais remplacés par une autre source. */
+    private const ACCOUNT_EXPORTS = [self::SOURCE_CSV, self::SOURCE_GARMIN];
 
     private const RUNNING_SPORTS = [Sport::Run, Sport::TrailRun, Sport::VirtualRun];
     /** En dessous, un enregistrement n'est pas une sortie (montre lancée par erreur) : ignoré par les analyses. */
@@ -310,9 +313,10 @@ final class ActivityRepository extends ServiceEntityRepository
      * Ajoute ou met à jour une activité.
      *
      * 1. Même identifiant : mise à jour de l'activité connue.
-     * 2. Sinon, même sortie venant d'une autre source (départ à ±1 minute) : une ligne du CSV
-     *    (plus complète) remplace une trace ; une trace ne remplace jamais une ligne du CSV.
-     *    Deux lignes du CSV ne sont jamais fusionnées : leurs identifiants Strava sont uniques.
+     * 2. Sinon, même sortie venant d'une autre source (départ à ±1 minute) : une ligne d'export de
+     *    compte (CSV Strava, résumé Garmin, plus complète) remplace une trace ; rien ne remplace une
+     *    ligne d'export de compte (la première importée reste, Strava ou Garmin).
+     *    Deux lignes du même export ne sont jamais fusionnées : leurs identifiants sont uniques.
      */
     public function upsert(Activity $activity): UpsertResult
     {
@@ -326,7 +330,7 @@ final class ActivityRepository extends ServiceEntityRepository
             return new UpsertResult(UpsertOutcome::Created, $activity);
         }
 
-        if (self::SOURCE_CSV === $existing->source && self::SOURCE_CSV !== $activity->source) {
+        if (self::isAccountExport($existing->source) && $existing->source !== $activity->source) {
             return new UpsertResult(UpsertOutcome::Unchanged, $existing);
         }
         if ($existing->toArray() === $activity->toArray()) {
@@ -341,7 +345,7 @@ final class ActivityRepository extends ServiceEntityRepository
             return new UpsertResult(UpsertOutcome::Updated, $existing);
         }
 
-        // Trace remplacée par la ligne du CSV de la même sortie : on remplace l'entité.
+        // Trace remplacée par la ligne d'export de la même sortie : on remplace l'entité.
         $this->getEntityManager()->remove($existing);
         $this->getEntityManager()->persist($activity);
         $this->remember($activity);
@@ -405,13 +409,18 @@ final class ActivityRepository extends ServiceEntityRepository
         $start = $activity->startDate->setTimezone(new \DateTimeZone('UTC'));
         foreach (['+0 minute', '-1 minute', '+1 minute'] as $shift) {
             foreach ($this->byStartKey[Activity::keyFor($start->modify($shift))] ?? [] as $candidate) {
-                if (self::SOURCE_CSV !== $candidate->source || self::SOURCE_CSV !== $activity->source) {
+                if ($candidate->source !== $activity->source || !self::isAccountExport($activity->source)) {
                     return $candidate;
                 }
             }
         }
 
         return null;
+    }
+
+    private static function isAccountExport(string $source): bool
+    {
+        return \in_array($source, self::ACCOUNT_EXPORTS, true);
     }
 
     /**

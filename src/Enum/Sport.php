@@ -27,7 +27,7 @@ enum Sport: string
             str_contains($label, 'virtual run'), str_contains($label, 'course virtuelle') => self::VirtualRun,
             str_contains($label, 'run'), str_contains($label, 'course'), '9' === $label => self::Run,
             str_contains($label, 'ride'), str_contains($label, 'velo'), str_contains($label, 'biking'), str_contains($label, 'cycling'), '1' === $label => self::Ride,
-            str_contains($label, 'hike'), str_contains($label, 'randonnee') => self::Hike,
+            str_contains($label, 'hike'), str_contains($label, 'hiking'), str_contains($label, 'randonnee') => self::Hike,
             str_contains($label, 'walk'), str_contains($label, 'marche') => self::Walk,
             str_contains($label, 'swim'), str_contains($label, 'natation') => self::Swim,
             default => self::Other,

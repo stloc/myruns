@@ -23,13 +23,18 @@ tournent aussi sur l'hôte. `ddev start` ne demande `sudo` qu'au tout premier d�
 ## Règles du projet
 
 - **Ne pas réintroduire l'API Strava** : payante depuis juin 2026 et sa politique interdit l'usage
-  de ses données avec une IA. Sources : archive Strava (historique) + **intervals.icu** au quotidien
+  de ses données avec une IA. Sources : archive Strava ou Garmin Connect (historique) + **intervals.icu** au quotidien
   (`src/Sync/`, client HTTP `intervals.client` dans `framework.yaml`, séances `source = STRAVA`
   ignorées). Tests de synchro avec `MockHttpClient` uniquement, jamais la vraie clé.
 - Imports **idempotents** (`ActivityRepository::upsert()`) : même `id` d'abord ; sinon même sortie
   d'une autre source à ±1 min (`Activity::$startKey`, index non unique). **Jamais de fusion entre
-  deux lignes du CSV** (bug corrigé : 3 activités perdues), une trace ne remplace jamais le CSV.
+  deux lignes d'un même export** (bug corrigé : 3 activités perdues), rien ne remplace une ligne
+  d'export de compte (CSV Strava, résumé Garmin : la première importée reste).
   `tests/Integration/DeduplicationTest.php` fige ces règles.
+- Export Garmin Connect (`GarminExportParser`) : `*_summarizedActivities.json` (cm, ms) puis les
+  FIT des zips imbriqués `UploadedFiles_*.zip` (extraits dans le dossier temporaire, effacés par
+  `ActivityImporter::cleanUp()`) ; pas de nom de fichier dans le résumé → rattachement par l'heure
+  de départ. Figé par `tests/Integration/GarminImportTest.php`.
 - Traces : CSV d'abord, puis chaque trace (`FitDecoder` maison, GPX, TCX) est rattachée à sa ligne
   via `Activity::$trackFile` (colonne « Nom du fichier ») → `ActivitySplit` (km calculés, tours de
   montre) + `sustainedMaxHeartRate`. Ne jamais versionner une trace réelle (GPS de l'utilisateur) :

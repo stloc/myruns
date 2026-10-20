@@ -13,7 +13,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
-#[AsCommand(name: 'app:import', description: 'Importe les activités depuis un export Strava (ZIP/dossier) ou un dossier GPX/TCX')]
+#[AsCommand(name: 'app:import', description: 'Importe les activités depuis un export Strava ou Garmin (ZIP/dossier) ou un dossier GPX/TCX')]
 final class ImportCommand extends Command
 {
     public function __construct(
@@ -26,11 +26,12 @@ final class ImportCommand extends Command
     protected function configure(): void
     {
         $this
-            ->addArgument('path', InputArgument::OPTIONAL, 'Archive export_XXXX.zip, dossier décompressé ou dossier de traces (défaut : STRAVA_EXPORT_PATH)')
+            ->addArgument('path', InputArgument::OPTIONAL, 'Archive Strava ou Garmin (.zip), dossier décompressé ou dossier de traces (défaut : STRAVA_EXPORT_PATH)')
             ->setHelp(<<<'HELP'
                 Importe (ou ré-importe sans doublon) les activités :
 
                   <info>%command.full_name% ~/Téléchargements/export_12345678.zip</info>
+                  <info>%command.full_name% ~/Téléchargements/<identifiant Garmin>_1.zip</info>
                   <info>%command.full_name% ~/Dropbox/Apps/tapiriik</info>
 
                 Sans argument, le chemin de la variable STRAVA_EXPORT_PATH est utilisé : pratique en cron.

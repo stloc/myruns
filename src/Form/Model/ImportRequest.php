@@ -36,7 +36,7 @@ final class ImportRequest
     public function validateExtension(ExecutionContextInterface $context): void
     {
         if (null !== $this->file && null === $this->extension()) {
-            $context->buildViolation('Formats acceptés : archive Strava .zip, .gpx, .tcx (éventuellement .gz).')
+            $context->buildViolation('Formats acceptés : archive Strava ou Garmin .zip, .gpx, .tcx (éventuellement .gz).')
                 ->atPath('file')
                 ->addViolation();
         }

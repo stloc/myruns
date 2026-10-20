@@ -41,7 +41,8 @@ ddev exec vendor/bin/phpunit
 ## Récupérer ses activités
 
 Deux sources, combinables. Dédoublonnage : même identifiant, ou même sortie venant de deux
-sources différentes (départ à ±1 minute) ; deux lignes du CSV ne sont jamais fusionnées.
+sources différentes (départ à ±1 minute) ; deux lignes d'un même export ne sont jamais fusionnées.
+Entre un export Strava et un export Garmin de la même sortie, la première ligne importée reste.
 
 1. **Export de compte Strava** (officiel, gratuit) : Paramètres → Mon compte → *Télécharger ou
    supprimer votre compte* → *Demander une archive*. Strava envoie par e-mail un lien vers
@@ -50,10 +51,18 @@ sources différentes (départ à ±1 minute) ; deux lignes du CSV ne sont jamais
    par la colonne « Nom du fichier ». Les traces donnent les **temps de passage au km**, les
    **tours de la montre** et la **FC max tenue 10 s** (qui écarte les pics du capteur optique).
    Le format FIT est décodé par `src/Import/Fit/FitDecoder.php`, sans dépendance externe.
-2. **Dossier de traces GPX/TCX** alimenté régulièrement : Tapiriik vers Dropbox/Google Drive,
+2. **Export de compte Garmin Connect** (officiel, gratuit) : sur garmin.com, *Compte* → *Gestion
+   des données* → *Exporter vos données*. Garmin envoie un lien vers une archive `.zip` (délai :
+   jusqu'à plusieurs jours), à importer telle quelle. On lit le résumé
+   `DI_CONNECT/DI-Connect-Fitness/*_summarizedActivities.json` (distances et D+ en cm, durées en
+   ms ; noms absents avant ~2016) puis les FIT des archives imbriquées
+   `DI_CONNECT/DI-Connect-Uploaded-Files/UploadedFiles_*.zip`, extraites une fois dans le dossier
+   temporaire puis effacées. Le résumé ne cite pas ses FIT : chacun rejoint sa ligne par l'heure de
+   départ (±1 minute) ; un FIT envoyé plusieurs fois à Garmin Connect ne crée pas de doublon.
+3. **Dossier de traces GPX/TCX** alimenté régulièrement : Tapiriik vers Dropbox/Google Drive,
    extension « Strava Bulk GPX Downloader »…
 
-3. **Au quotidien : intervals.icu** (gratuit). La montre (Suunto, Garmin, Coros…) se synchronise
+4. **Au quotidien : intervals.icu** (gratuit). La montre (Suunto, Garmin, Coros…) se synchronise
    avec intervals.icu, qui garde le fichier FIT d'origine. `app:sync` récupère les nouvelles
    séances via l'API intervals.icu (clé personnelle, authentification basique `API_KEY:<clé>`),
    télécharge le FIT seulement si les temps de passage manquent, et ignore les séances arrivées
@@ -273,7 +282,7 @@ stocké :
 | `src/Entity/`, `src/Repository/`, `migrations/` | Activités, profil, courses officielles (Doctrine), schéma SQLite |
 | `src/Doctrine/UtcDateTimeImmutableType.php` | Dates de départ stockées en UTC (SQLite ne garde pas le fuseau) |
 | `src/Settings/` | Réglages saisis dans l'app (`settings.json`) exposés comme variables d'environnement |
-| `src/Import/` | Parseurs CSV Strava, GPX, TCX et import idempotent |
+| `src/Import/` | Parseurs CSV Strava, résumé Garmin, GPX, TCX et import idempotent |
 | `src/Prediction/` | VDOT, forme, prédiction d'objectif |
 | `src/Training/` | Programme d'entraînement (phases, volumes, allures, séances) et bilan prévu / réalisé |
 | `src/Ai/` | Coach IA (sortie structurée `CoachAnalysis`) |
