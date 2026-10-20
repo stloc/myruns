@@ -41,6 +41,7 @@ final class OpenMeteoWeatherTest extends TestCase
         self::assertSame(8.0, $first->temperature);
         self::assertSame(2, $first->code);
         self::assertSame('Partiellement nuageux', $first->conditionLabel());
+        self::assertSame('cloud-sun', $first->conditionIcon());
         self::assertSame(80, $first->humidity);
         self::assertSame(20.0, $first->windSpeed);
         self::assertSame('O', $first->windDirectionLabel());
@@ -94,6 +95,7 @@ final class OpenMeteoWeatherTest extends TestCase
 
         self::assertEquals($weather, Weather::fromArray($weather->toArray()));
         self::assertSame('Averses', $weather->conditionLabel());
+        self::assertSame('rain', $weather->conditionIcon());
         self::assertSame('N', $weather->windDirectionLabel());
         self::assertNull(Weather::fromArray(['code' => 1]), 'Sans température, pas de météo');
     }

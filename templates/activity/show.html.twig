@@ -11,21 +11,25 @@
 
     <section class="stat-grid" aria-label="Résumé">
         <div class="stat-tile">
+            {{ include('_icon.html.twig', {name: 'distance'}, with_context = false) }}
             <span class="stat-label">Distance</span>
             <span class="stat-value">{{ activity.distanceMeters|distance }}</span>
         </div>
         <div class="stat-tile">
+            {{ include('_icon.html.twig', {name: 'timer'}, with_context = false) }}
             <span class="stat-label">Temps de déplacement</span>
             <span class="stat-value">{{ activity.movingTimeSeconds|duration }}</span>
             <span class="stat-detail">temps total {{ activity.elapsedTimeSeconds|duration }}</span>
         </div>
         {% if activity.sport.isRunning %}
             <div class="stat-tile">
+                {{ include('_icon.html.twig', {name: 'pace'}, with_context = false) }}
                 <span class="stat-label">Allure moyenne</span>
                 <span class="stat-value">{{ activity.paceSecondsPerKm|pace }}</span>
             </div>
         {% endif %}
         <div class="stat-tile">
+            {{ include('_icon.html.twig', {name: 'heart'}, with_context = false) }}
             <span class="stat-label">Fréquence cardiaque</span>
             <span class="stat-value">{{ activity.averageHeartRate is not null ? activity.averageHeartRate|number_format(0) ~ ' bpm' : '–' }}</span>
             <span class="stat-detail">
@@ -34,6 +38,7 @@
             </span>
         </div>
         <div class="stat-tile">
+            {{ include('_icon.html.twig', {name: 'mountain'}, with_context = false) }}
             <span class="stat-label">Dénivelé positif</span>
             <span class="stat-value">{{ activity.effectiveElevationGain is not null ? activity.effectiveElevationGain|number_format(0, ',', ' ') ~ ' m' : '–' }}</span>
             {% if activity.groundElevationGain is not null %}
@@ -46,6 +51,7 @@
         {% set weather = activity.weather %}
         {% if weather is not null %}
             <div class="stat-tile" title="Open-Meteo, au point de départ (maille d'environ 10 km), heure la plus proche du milieu de la sortie">
+                {{ include('_icon.html.twig', {name: weather.conditionIcon}, with_context = false) }}
                 <span class="stat-label">Météo</span>
                 <span class="stat-value">{{ weather.temperature|number_format(0) }} °C</span>
                 <span class="stat-detail">
@@ -95,11 +101,13 @@
             </p>
             <div class="stat-grid">
                 <div class="stat-tile">
+                    {{ include('_icon.html.twig', {name: 'trophy'}, with_context = false) }}
                     <span class="stat-label">Classement</span>
                     <span class="stat-value">{{ same_route.rank == 1 ? 'Record' : same_route.rank ~ 'ᵉ' }}</span>
                     <span class="stat-detail">sur {{ same_route.count }} sorties</span>
                 </div>
                 <div class="stat-tile">
+                    {{ include('_icon.html.twig', {name: 'star'}, with_context = false) }}
                     <span class="stat-label">Meilleur temps</span>
                     <span class="stat-value">{{ same_route.best.movingTimeSeconds|duration }}</span>
                     <span class="stat-detail">
@@ -108,6 +116,7 @@
                     </span>
                 </div>
                 <div class="stat-tile">
+                    {{ include('_icon.html.twig', {name: 'average'}, with_context = false) }}
                     <span class="stat-label">Moyenne des autres sorties</span>
                     <span class="stat-value">{{ same_route.othersAverageSeconds|duration }}</span>
                     <span class="stat-detail"><span class="{{ gap_class }}">{{ same_route.gapToAverage|gap }}</span>
@@ -118,6 +127,7 @@
                 </div>
                 {% if same_route.previous %}
                     <div class="stat-tile">
+                        {{ include('_icon.html.twig', {name: 'history'}, with_context = false) }}
                         <span class="stat-label">Sortie précédente</span>
                         <span class="stat-value">{{ same_route.previous.movingTimeSeconds|duration }}</span>
                         <span class="stat-detail">

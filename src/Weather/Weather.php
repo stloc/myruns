@@ -52,6 +52,23 @@ final readonly class Weather
         };
     }
 
+    /**
+     * Nom de l'icône (templates/_icon.html.twig) du temps observé.
+     */
+    public function conditionIcon(): string
+    {
+        return match (true) {
+            0 === $this->code => 'sun',
+            \in_array($this->code, [1, 2], true) => 'cloud-sun',
+            \in_array($this->code, [45, 48], true) => 'fog',
+            $this->code >= 51 && $this->code <= 57 => 'drizzle',
+            ($this->code >= 61 && $this->code <= 67) || ($this->code >= 80 && $this->code <= 82) => 'rain',
+            ($this->code >= 71 && $this->code <= 77) || \in_array($this->code, [85, 86], true) => 'snow',
+            $this->code >= 95 => 'storm',
+            default => 'cloud',
+        };
+    }
+
     public function windDirectionLabel(): ?string
     {
         return null === $this->windDirection ? null : self::WIND_DIRECTIONS[(int) round($this->windDirection / 45) % 8];

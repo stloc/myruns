@@ -149,6 +149,20 @@ code { font-size: 0.9em; overflow-wrap: anywhere; }
     border-radius: 10px;
     padding: 1rem 1.25rem;
 }
+.stat-tile:has(> .stat-icon) { position: relative; }
+.stat-icon {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    box-sizing: content-box;
+    width: 1.05rem;
+    height: 1.05rem;
+    padding: 0.35rem;
+    border-radius: 50%;
+    color: var(--accent);
+    background: var(--accent-soft);
+}
+.stat-icon + .stat-label { padding-right: 2.5rem; }
 .stat-label { color: var(--text-secondary); font-size: 0.85rem; }
 .stat-value { font-size: 1.9rem; font-weight: 650; line-height: 1.15; }
 .stat-detail { color: var(--text-muted); font-size: 0.8rem; }
