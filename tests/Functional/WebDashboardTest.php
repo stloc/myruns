@@ -191,6 +191,7 @@ final class WebDashboardTest extends WebTestCase
 
         $crawler = $this->client->request('GET', '/activites');
         self::assertSelectorTextContains('#start-map-title', 'Carte des départs');
+        self::assertSelectorExists('details.start-map:not([open]) [data-activities-map]', 'Carte repliée par défaut');
         self::assertSelectorTextContains('.card-subtitle', '3 sortie(s) avec trace GPS, toutes pages confondues');
         /** @var array{points: list<array{0: float, 1: float, 2: string, 3: string}>, bounds: list<list<float>>} $map */
         $map = json_decode((string) $crawler->filter('[data-activities-map]')->attr('data-activities-map'), true, flags: \JSON_THROW_ON_ERROR);

@@ -92,9 +92,16 @@ document.querySelectorAll('select[name="tri"]').forEach((sort) => {
     });
 });
 
-// Carte des départs (page Activités) : même chargement à la demande.
+// Carte des départs (page Activités), repliée par défaut : dessinée à la 1re ouverture
+// (Leaflet mesure mal un conteneur caché, et les tuiles ne sont demandées qu'à ce moment).
 document.querySelectorAll('[data-activities-map]').forEach((element) => {
-    import('./activities_map.js').then(({ drawActivitiesMap }) => drawActivitiesMap(element));
+    const draw = () => import('./activities_map.js').then(({ drawActivitiesMap }) => drawActivitiesMap(element));
+    const details = element.closest('details');
+    if (null === details || details.open) {
+        draw();
+    } else {
+        details.addEventListener('toggle', draw, { once: true });
+    }
 });
 
 // Carte de la trace (page détail d'une activité) : Leaflet n'est chargé que sur cette page.

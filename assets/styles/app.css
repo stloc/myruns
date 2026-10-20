@@ -292,6 +292,11 @@ code { font-size: 0.9em; overflow-wrap: anywhere; }
 
 .pagination { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 1.5rem; margin-top: 1rem; }
 
+/* Carte des départs (page Activités), repliée par défaut */
+.start-map summary { cursor: pointer; }
+.start-map summary h2 { display: inline; margin: 0; }
+.start-map[open] summary { margin-bottom: 0.75rem; }
+
 /* Programme d'entraînement */
 .plan-week summary { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.35rem 0.9rem; cursor: pointer; }
 .plan-week[open] summary { margin-bottom: 0.75rem; }
