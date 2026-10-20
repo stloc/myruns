@@ -36,6 +36,9 @@ class ActivitySplit
         public private(set) ?int $maxHeartRate = null,
         #[ORM\Column(nullable: true)]
         public private(set) ?float $elevationGain = null,
+        /** Altitude d'arrivée − altitude de départ du tronçon (négative en descente). */
+        #[ORM\Column(nullable: true)]
+        public private(set) ?float $elevationChange = null,
     ) {
     }
 
@@ -62,6 +65,7 @@ class ActivitySplit
             'avg_hr' => $this->averageHeartRate,
             'max_hr' => $this->maxHeartRate,
             'elevation_gain_m' => null === $this->elevationGain ? null : round($this->elevationGain, 1),
+            'elevation_change_m' => null === $this->elevationChange ? null : round($this->elevationChange, 1),
         ];
     }
 }

@@ -26,7 +26,7 @@ final class SplitCalculator
     /**
      * Passages au km et tours de la montre (seulement s'il y en a plusieurs).
      *
-     * @return list<array{kind: SplitKind, distance: float, seconds: float, avg_hr: ?int, max_hr: ?int, elevation_gain: ?float}>
+     * @return list<array{kind: SplitKind, distance: float, seconds: float, avg_hr: ?int, max_hr: ?int, elevation_gain: ?float, elevation_change: ?float}>
      */
     public function splits(ParsedTrack $track): array
     {
@@ -41,17 +41,18 @@ final class SplitCalculator
                     'avg_hr' => $lap->averageHeartRate,
                     'max_hr' => $lap->maxHeartRate,
                     'elevation_gain' => $lap->elevationGain,
+                    'elevation_change' => null,
                 ];
             }
         }
 
-        return $splits;
+        return $this->withElevationChanges($splits, $track->points);
     }
 
     /**
      * @param list<TrackPoint> $points
      *
-     * @return list<array{kind: SplitKind, distance: float, seconds: float, avg_hr: ?int, max_hr: ?int, elevation_gain: ?float}>
+     * @return list<array{kind: SplitKind, distance: float, seconds: float, avg_hr: ?int, max_hr: ?int, elevation_gain: ?float, elevation_change: ?float}>
      */
     public function kilometers(array $points, float $elevationNoise = self::ELEVATION_NOISE): array
     {
@@ -123,7 +124,7 @@ final class SplitCalculator
             $splits[] = $this->split($last->distanceMeters - $splitStartDistance, $seconds, $hrSum, $hrTime, $hrMax, $gain, null !== $lastAltitude);
         }
 
-        return $splits;
+        return $this->withElevationChanges($splits, $points);
     }
 
     /**
@@ -163,7 +164,7 @@ final class SplitCalculator
     }
 
     /**
-     * @return array{kind: SplitKind, distance: float, seconds: float, avg_hr: ?int, max_hr: ?int, elevation_gain: ?float}
+     * @return array{kind: SplitKind, distance: float, seconds: float, avg_hr: ?int, max_hr: ?int, elevation_gain: ?float, elevation_change: ?float}
      */
     private function split(float $distance, float $seconds, float $hrSum, float $hrTime, ?int $hrMax, float $gain, bool $hasAltitude): array
     {
@@ -174,6 +175,67 @@ final class SplitCalculator
             'avg_hr' => $hrTime > 0 ? (int) round($hrSum / $hrTime) : null,
             'max_hr' => $hrMax,
             'elevation_gain' => $hasAltitude ? round($gain, 1) : null,
+            'elevation_change' => null,
         ];
+    }
+
+    /**
+     * Variation d'altitude de chaque tronçon (arrivée − départ, négative en descente), tronçons de même
+     * type mis bout à bout depuis le début de la trace. Tours de montre : à leur distance cumulée.
+     *
+     * @param list<array{kind: SplitKind, distance: float, seconds: float, avg_hr: ?int, max_hr: ?int, elevation_gain: ?float, elevation_change: ?float}> $splits
+     * @param list<TrackPoint>                                                                                                                            $points
+     *
+     * @return list<array{kind: SplitKind, distance: float, seconds: float, avg_hr: ?int, max_hr: ?int, elevation_gain: ?float, elevation_change: ?float}>
+     */
+    private function withElevationChanges(array $splits, array $points): array
+    {
+        $profile = [];
+        foreach ($points as $point) {
+            if (null !== $point->altitudeMeters) {
+                $profile[] = [$point->distanceMeters, $point->altitudeMeters];
+            }
+        }
+        if ([] === $profile) {
+            return $splits;
+        }
+
+        $start = [];
+        foreach ($splits as $i => $split) {
+            $from = $start[$split['kind']->value] ?? 0.0;
+            $to = $start[$split['kind']->value] = $from + $split['distance'];
+            $splits[$i]['elevation_change'] = round(self::altitudeAt($profile, $to) - self::altitudeAt($profile, $from), 1);
+        }
+
+        return $splits;
+    }
+
+    /**
+     * Altitude interpolée à une distance, bornée au premier et au dernier point.
+     *
+     * @param non-empty-list<array{0: float, 1: float}> $profile [distance, altitude] par distance croissante
+     */
+    private static function altitudeAt(array $profile, float $distance): float
+    {
+        $low = 0;
+        $high = \count($profile) - 1;
+        if ($distance <= $profile[$low][0]) {
+            return $profile[$low][1];
+        }
+        if ($distance >= $profile[$high][0]) {
+            return $profile[$high][1];
+        }
+        while ($high - $low > 1) {
+            $middle = intdiv($low + $high, 2);
+            if ($profile[$middle][0] <= $distance) {
+                $low = $middle;
+            } else {
+                $high = $middle;
+            }
+        }
+        [$d0, $a0] = $profile[$low];
+        [$d1, $a1] = $profile[$high];
+
+        return $d1 > $d0 ? $a0 + ($a1 - $a0) * ($distance - $d0) / ($d1 - $d0) : $a1;
     }
 }

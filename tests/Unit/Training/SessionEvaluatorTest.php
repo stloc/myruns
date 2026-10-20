@@ -188,6 +188,7 @@ final class SessionEvaluatorTest extends TestCase
             'avg_hr' => null,
             'max_hr' => null,
             'elevation_gain' => null,
+            'elevation_change' => null,
         ], $laps), null);
 
         return $run;

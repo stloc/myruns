@@ -57,6 +57,22 @@ final class SplitCalculatorTest extends TestCase
         self::assertSame(160, $several[1]['max_hr']);
     }
 
+    public function testElevationChangeIsSignedPerKilometerAndPerLap(): void
+    {
+        // Montée de 30 m sur 1,5 km puis descente de 45 m sur 1 km : le 2ᵉ km monte de 10 m puis descend de 22,5 m.
+        $points = [];
+        for ($d = 0; $d <= 2500; $d += 10) {
+            $altitude = $d <= 1500 ? 100 + $d * 0.02 : 130 - ($d - 1500) * 0.045;
+            $points[] = new TrackPoint(intdiv($d, 4), (float) $d, null, $altitude);
+        }
+        $activity = new Activity('x', 'track_file', '', Sport::Run, new \DateTimeImmutable(), 2500, 625, 625);
+
+        $splits = (new SplitCalculator())->splits(new ParsedTrack($activity, $points, [new TrackLap(1500, 375), new TrackLap(1000, 250)]));
+
+        self::assertSame([20.0, -12.5, -22.5, 30.0, -45.0], array_column($splits, 'elevation_change'));
+        self::assertNull((new SplitCalculator())->kilometers([new TrackPoint(0, 0.0), new TrackPoint(300, 1000.0)])[0]['elevation_change'], 'Sans altitude');
+    }
+
     public function testSustainedMaxHeartRateIgnoresSensorSpikes(): void
     {
         $points = [];

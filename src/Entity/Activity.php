@@ -134,8 +134,8 @@ class Activity
     /**
      * Remplace les temps de passage issus de la trace (sans toucher à la base s'ils sont identiques).
      *
-     * @param list<array{kind: SplitKind, distance: float, seconds: float, avg_hr: ?int, max_hr: ?int, elevation_gain: ?float}> $splits
-     * @param list<array{0: float, 1: float, 2: float, 3: int}>                                                                 $routePoints trace simplifiée (vide sans GPS)
+     * @param list<array{kind: SplitKind, distance: float, seconds: float, avg_hr: ?int, max_hr: ?int, elevation_gain: ?float, elevation_change: ?float}> $splits
+     * @param list<array{0: float, 1: float, 2: float, 3: int}>                                                                                           $routePoints trace simplifiée (vide sans GPS)
      *
      * @return bool true si quelque chose a changé
      */
@@ -155,7 +155,7 @@ class Activity
         $new = [];
         foreach ($splits as $split) {
             $position = $positions[$split['kind']->value] = ($positions[$split['kind']->value] ?? 0) + 1;
-            $new[] = new ActivitySplit($this, $split['kind'], $position, $split['distance'], $split['seconds'], $split['avg_hr'], $split['max_hr'], $split['elevation_gain']);
+            $new[] = new ActivitySplit($this, $split['kind'], $position, $split['distance'], $split['seconds'], $split['avg_hr'], $split['max_hr'], $split['elevation_gain'], $split['elevation_change']);
         }
 
         if (self::describeSplits($this->splits->toArray()) === self::describeSplits($new) && $this->sustainedMaxHeartRate === $sustainedMaxHeartRate && $this->groundElevationGain === $groundElevationGain) {

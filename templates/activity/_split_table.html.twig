@@ -11,7 +11,7 @@
                 <th scope="col" class="speed-col"><span class="visually-hidden">Vitesse relative</span></th>
                 <th scope="col" class="num">FC moy.</th>
                 <th scope="col" class="num">FC max</th>
-                <th scope="col" class="num">D+</th>
+                <th scope="col" class="num"><abbr title="Variation d'altitude entre le début et la fin du tronçon">Altitude ±</abbr></th>
             </tr>
         </thead>
         <tbody>
@@ -25,7 +25,8 @@
                     <td class="speed-col" aria-hidden="true"><span class="speed-bar" style="--speed: {{ row.speed_percent }}%"></span></td>
                     <td class="num">{{ row.split.averageHeartRate ?? '–' }}</td>
                     <td class="num">{{ row.split.maxHeartRate ?? '–' }}</td>
-                    <td class="num">{{ row.split.elevationGain is not null ? row.split.elevationGain|number_format(0) ~ ' m' : '–' }}</td>
+                    {% set change = row.split.elevationChange is not null ? row.split.elevationChange|round : null %}
+                    <td class="num">{{ change is null ? '–' : (change > 0 ? '+' : (change < 0 ? '−' : '')) ~ change|abs|number_format(0) ~ ' m' }}</td>
                 </tr>
             {% endfor %}
         </tbody>
