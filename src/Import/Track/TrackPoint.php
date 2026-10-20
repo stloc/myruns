@@ -17,6 +17,8 @@ final readonly class TrackPoint
         public ?float $altitudeMeters = null,
         public ?float $latitude = null,
         public ?float $longitude = null,
+        /** Cycles par minute tels qu'enregistrés : tours de pédale, ou foulées (un pied) en course. */
+        public ?float $cadence = null,
     ) {
     }
 
@@ -27,6 +29,6 @@ final readonly class TrackPoint
 
     public function withAltitude(float $altitudeMeters): self
     {
-        return new self($this->timestamp, $this->distanceMeters, $this->heartRate, $altitudeMeters, $this->latitude, $this->longitude);
+        return new self($this->timestamp, $this->distanceMeters, $this->heartRate, $altitudeMeters, $this->latitude, $this->longitude, $this->cadence);
     }
 }

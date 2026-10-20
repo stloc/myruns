@@ -91,6 +91,28 @@
         </section>
     {% endif %}
 
+    {% if profile %}
+        <section class="card" aria-labelledby="activity-profile-title">
+            <h2 id="activity-profile-title">Profil</h2>
+            <p class="card-subtitle">{{ activity.sport.isRunning ? 'Allure lissée sur 200 m' : 'Vitesse lissée sur 200 m' }}, arrêts exclus ; survolez le graphique pour les valeurs.</p>
+            <div class="activity-profile" data-activity-profile="{{ profile.toArray|json_encode }}">
+                <div class="activity-profile-chart" style="--panels: {{ profile.series|length }}">
+                    <canvas role="img" aria-label="Profil de la sortie : {{ profile.series|map(s => s.label|lower)|join(', ') }} selon la distance"></canvas>
+                </div>
+                <ul class="activity-profile-legend" aria-label="Séries affichées et moyennes">
+                    {% for series in profile.series %}
+                        <li>
+                            <button type="button" class="profile-toggle profile-{{ series.key|replace({'_': '-'}) }}" data-profile-toggle="{{ series.key }}" aria-pressed="true" disabled>{{ series.label }}</button>
+                            {% if series.average is not null %}
+                                <span class="profile-average">{{ series.key == 'altitude' ? '' : 'moy. ' }}{{ series.average }}</span>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </section>
+    {% endif %}
+
     {% if same_route %}
         {% set gap_class = 'gap-' ~ (same_route.gapToAverage < 0 ? 'faster' : 'slower') %}
         <section class="card" aria-labelledby="same-route-title">

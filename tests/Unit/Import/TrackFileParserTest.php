@@ -56,6 +56,31 @@ final class TrackFileParserTest extends TestCase
         self::assertSame('2026-01-05 07:00', $activity->startDate->format('Y-m-d H:i'));
     }
 
+    public function testReadsCadenceFromGpxAndTcxExtensions(): void
+    {
+        $gpx = '<?xml version="1.0"?><gpx version="1.1" xmlns="http://www.topografix.com/GPX/1/1" xmlns:gpxtpx="http://www.garmin.com/xmlschemas/TrackPointExtension/v1"><trk><type>running</type><trkseg>'
+            .'<trkpt lat="48.0" lon="-4.0"><time>2026-01-05T07:00:00Z</time><extensions><gpxtpx:TrackPointExtension><gpxtpx:hr>140</gpxtpx:hr><gpxtpx:cad>82</gpxtpx:cad></gpxtpx:TrackPointExtension></extensions></trkpt>'
+            .'<trkpt lat="48.001" lon="-4.0"><time>2026-01-05T07:00:30Z</time></trkpt></trkseg></trk></gpx>';
+        $tcx = <<<'XML'
+            <?xml version="1.0"?>
+            <TrainingCenterDatabase xmlns="http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2" xmlns:ns3="http://www.garmin.com/xmlschemas/ActivityExtension/v2">
+              <Activities><Activity Sport="Running"><Id>2026-01-05T07:00:00Z</Id>
+                <Lap StartTime="2026-01-05T07:00:00Z"><TotalTimeSeconds>30</TotalTimeSeconds><DistanceMeters>100</DistanceMeters><Track>
+                  <Trackpoint><Time>2026-01-05T07:00:00Z</Time><DistanceMeters>0</DistanceMeters><Extensions><ns3:TPX><ns3:RunCadence>84</ns3:RunCadence></ns3:TPX></Extensions></Trackpoint>
+                  <Trackpoint><Time>2026-01-05T07:00:30Z</Time><DistanceMeters>100</DistanceMeters><Cadence>90</Cadence></Trackpoint>
+                </Track></Lap>
+              </Activity></Activities>
+            </TrainingCenterDatabase>
+            XML;
+
+        $gpxTrack = (new TrackFileParser())->parse('run.gpx', $gpx);
+        $tcxTrack = (new TrackFileParser())->parse('run.tcx', $tcx);
+
+        self::assertSame([82.0, null], array_map(static fn ($p) => $p->cadence, $gpxTrack->points ?? []));
+        self::assertSame(140, $gpxTrack?->points[0]->heartRate);
+        self::assertSame([84.0, 90.0], array_map(static fn ($p) => $p->cadence, $tcxTrack->points ?? []));
+    }
+
     public function testIgnoresInvalidFile(): void
     {
         self::assertNull((new TrackFileParser())->parse('broken.gpx', 'pas du xml'));

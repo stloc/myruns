@@ -11,7 +11,8 @@ réussite d'un objectif chrono (VDOT + coach IA).
   `.deb` + AppImage (Linux, PHP statique static-php-cli « common », sans intl), construits par
   GitHub Actions (`.github/workflows/desktop.yml`, sur tag `v*`)
 - `symfony/ai-bundle` + `symfony/ai-anthropic-platform` **0.14** (pré-1.0 : vérifier l'API dans `vendor/`)
-- Twig + AssetMapper (pas de build JS, pas de Stimulus) ; graphiques en SVG rendus côté serveur
+- Twig + AssetMapper (pas de build JS, pas de Stimulus) ; graphiques en SVG rendus côté serveur,
+  sauf le profil de la page détail (Chart.js, chargé à la demande comme Leaflet)
 
 ## Préfixe de commandes
 
@@ -73,6 +74,13 @@ tournent aussi sur l'hôte. `ddev start` ne demande `sudo` qu'au tout premier d�
   `ActivityRepository::startPositions()` reprend les critères de la recherche, toutes pages
   confondues ; `src/Chart/StartMap.php` → `assets/activities_map.js` : regroupement maison par
   distance (60 px, fusion des groupes trop proches, pas de plugin Leaflet), liste au zoom 17.
+- Profil de la sortie (page détail) : `StreamSampler` (~600 points : distance, temps, altitude du
+  terrain, FC, cadence) → `ActivityStream` (table à part comme `ActivityRoute`, remplie même sans
+  GPS), posé par `replaceTrackData()`. Cadence = cycles/min de la source (FIT champ 4 + 53, GPX
+  `cad`, TCX `Cadence`/`RunCadence`), ×2 à l'affichage à pied (pas/min). `src/Chart/ActivityProfile`
+  (allure lissée sur 200 m, arrêts exclus) → `assets/activity_profile.js` : **Chart.js direct via
+  l'importmap** (pas de Symfony UX Chart.js : il impose Stimulus), un panneau par série sur des
+  axes Y empilés (jamais deux échelles sur une même zone), couleurs `--profile-*` d'`app.css`.
 - Même parcours (`src/Route/`, page détail) : rien n'est stocké ; candidats en SQL (départ à < 300 m
   via `ActivityRoute::$startLatitude/$startLongitude`, même famille de sport, distance ±10 %), puis
   `RouteMatcher` : chaque trace longe l'autre à 60 m près sur ≥ 90 %, **dans le même sens** (boucle

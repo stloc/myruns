@@ -179,6 +179,7 @@ final class FitDecoder
             altitudeMeters: null !== $altitude ? $altitude / 5 - 500 : null,
             latitude: isset($values[0]) ? $values[0] * (180 / 2 ** 31) : null,
             longitude: isset($values[1]) ? $values[1] * (180 / 2 ** 31) : null,
+            cadence: isset($values[4]) ? $values[4] + ($values[53] ?? 0) / 128 : null,
         );
     }
 

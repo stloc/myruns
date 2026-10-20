@@ -34,6 +34,12 @@
     --route-finish: #0b0b0b;
     --route-marker-border: #ffffff;
     --map-tiles-filter: none;
+    /* Profil de la sortie : palette catégorielle validée (contraste, daltonisme) en clair et en sombre. */
+    --profile-pace: #2a78d6;
+    --profile-heart-rate: #e34948;
+    --profile-cadence: #6250d6;
+    --profile-altitude: #8f8e86;
+    --profile-altitude-fill: rgba(143, 142, 134, 0.25);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -71,6 +77,11 @@
         --route-marker-border: #1a1a19;
         /* Fond de carte assombri pour ne pas éblouir en mode sombre. */
         --map-tiles-filter: brightness(0.7) contrast(1.1) saturate(0.6);
+        --profile-pace: #3987e5;
+        --profile-heart-rate: #e66767;
+        --profile-cadence: #9085e9;
+        --profile-altitude: #8a8983;
+        --profile-altitude-fill: rgba(138, 137, 131, 0.25);
     }
 }
 
@@ -381,3 +392,16 @@ code { font-size: 0.9em; overflow-wrap: anywhere; }
 .route-legend { display: flex; flex-wrap: wrap; gap: 0.35rem 1.25rem; margin: 0.75rem 0 0; padding: 0; list-style: none; font-size: 0.85rem; color: var(--text-secondary); }
 .route-legend li { display: flex; align-items: center; gap: 0.4rem; }
 .route-legend li::before { content: ""; width: 1.25rem; height: 0.3rem; border-radius: 999px; background: var(--swatch); }
+.activity-profile-chart { position: relative; height: calc(var(--panels, 4) * 6.5rem + 2rem); }
+.activity-profile-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem 2rem; margin: 0.75rem 0 0; padding: 0; list-style: none; }
+.activity-profile-legend li { display: flex; flex-direction: column; align-items: center; gap: 0.2rem; }
+.profile-toggle { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.2rem 0.6rem; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); color: var(--text); font: inherit; font-size: 0.85rem; cursor: pointer; }
+.profile-toggle::before { content: ""; width: 1rem; height: 0.25rem; border-radius: 999px; background: var(--swatch); }
+.profile-toggle[aria-pressed="false"] { color: var(--text-muted); }
+.profile-toggle[aria-pressed="false"]::before { background: var(--meter-track); }
+.profile-toggle:disabled { cursor: default; }
+.profile-pace { --swatch: var(--profile-pace); }
+.profile-heart-rate { --swatch: var(--profile-heart-rate); }
+.profile-cadence { --swatch: var(--profile-cadence); }
+.profile-altitude { --swatch: var(--profile-altitude); }
+.profile-average { font-size: 0.85rem; color: var(--text-secondary); font-variant-numeric: tabular-nums; }

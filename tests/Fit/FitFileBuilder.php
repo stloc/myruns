@@ -27,17 +27,17 @@ final class FitFileBuilder
     /**
      * Point de mesure ; $compressed utilise l'en-tête à horodatage compressé (décalage ≤ 31 s).
      */
-    public function record(int $unixTimestamp, float $distanceMeters, ?int $heartRate, bool $compressed = false): self
+    public function record(int $unixTimestamp, float $distanceMeters, ?int $heartRate, bool $compressed = false, ?int $cadence = null): self
     {
         $fitTimestamp = $unixTimestamp - self::FIT_EPOCH_OFFSET;
-        $hr = \chr($heartRate ?? 0xFF);
+        $hr = \chr($heartRate ?? 0xFF).\chr($cadence ?? 0xFF);
         $distance = pack('V', (int) round($distanceMeters * 100));
 
         if ($compressed) {
-            $this->define(1, 20, [[5, 4, 0x86], [3, 1, 0x02]]);
+            $this->define(1, 20, [[5, 4, 0x86], [3, 1, 0x02], [4, 1, 0x02]]);
             $this->records .= \chr(0x80 | (1 << 5) | ($fitTimestamp & 0x1F)).$distance.$hr;
         } else {
-            $this->define(0, 20, [[253, 4, 0x86], [5, 4, 0x86], [3, 1, 0x02]]);
+            $this->define(0, 20, [[253, 4, 0x86], [5, 4, 0x86], [3, 1, 0x02], [4, 1, 0x02]]);
             $this->records .= \chr(0).pack('V', $fitTimestamp).$distance.$hr;
         }
 

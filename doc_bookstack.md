@@ -124,7 +124,8 @@ SQLite : un fichier `myruns.db` dans le dossier des données (application de bur
 | `training_week_override` | Ajustements du programme par semaine (lundi de la semaine, club oui/non, nombre de sorties) |
 | `race_result` | Courses officielles saisies : date, distance, temps, nom |
 | `deleted_activity` | Activités supprimées par l'utilisateur (identifiant, source, minute de départ, nom, date de suppression) : les imports et la synchro ne les recréent pas |
-| `activity_split` | Temps de passage : un kilomètre calculé ou un tour de la montre par ligne (distance, temps, FC moyenne et max, D+) |
+| `activity_split` | Temps de passage : un kilomètre calculé ou un tour de la montre par ligne (distance, temps, FC moyenne et max, D+, variation d'altitude) |
+| `activity_stream` | Profil d'une sortie : environ 600 points (distance, temps, altitude du terrain, FC, cadence), lus seulement sur la page détail |
 
 Le schéma est géré par les migrations Doctrine (`migrations/`), appliquées automatiquement à
 chaque ouverture de l'application de bureau. Les activités se reconstruisent par un nouvel import ;
@@ -163,7 +164,7 @@ le profil, les courses officielles et les ajustements du programme, non : sauveg
 1. L'utilisateur télécharge son archive Strava ou Garmin Connect, ou laisse un outil tiers remplir un dossier de traces.
 2. L'import (page *Import* ou `app:import`) lit `activities.csv` (Strava) ou le résumé des
    activités (Garmin) et les traces `.fit`/`.gpx`/`.tcx`
-   (y compris `.gz`) : temps de passage, FC tenue, D+ recalculé sur le terrain (IGN, Open-Meteo hors de France), ville du départ (IGN, OpenStreetMap hors de France), météo (Open-Meteo) et trace simplifiée pour la carte.
+   (y compris `.gz`) : temps de passage, FC tenue, D+ recalculé sur le terrain (IGN, Open-Meteo hors de France), ville du départ (IGN, OpenStreetMap hors de France), météo (Open-Meteo), trace simplifiée pour la carte et profil (allure, FC, cadence, altitude).
    Depuis la page web, une grosse archive s'importe par étapes : les activités apparaissent tout de suite,
    puis une barre de progression suit la lecture des traces (jusqu'à une vingtaine de minutes pour 600 traces la première fois ; un réimport ne prend que quelques secondes et peut se terminer sans afficher la barre).
 3. Chaque activité est ajoutée ou mise à jour en base ; une sortie déjà connue n'est pas dupliquée.
@@ -219,6 +220,9 @@ le profil, les courses officielles et les ajustements du programme, non : sauveg
 - **Une séance récente n'apparaît pas après la synchro** → la montre ne s'est pas encore
   synchronisée avec l'app Suunto / intervals.icu → vérifier qu'elle est visible sur intervals.icu,
   puis relancer « Synchroniser maintenant ».
+- **Pas de bloc « Profil » sur une sortie importée avant octobre 2026** → profil calculé à
+  l'import des traces → réimporter l'archive (ou le dossier) : les sorties déjà connues ne sont
+  pas dupliquées, seul le profil est ajouté. Normal en piscine et pour une sortie sans trace.
 - **« no such table: activity »** (développement) → migrations non appliquées →
   `ddev exec bin/console doctrine:migrations:migrate -n`. L'application Windows les applique
   seule à l'ouverture.
@@ -445,7 +449,11 @@ flèches pour naviguer, Entrée pour valider, Échap pour revenir, Ctrl+C pour q
   température, ciel, ressenti, humidité, vent et rafales, pluie tombée), carte du parcours
   (trace colorée du plus lent au plus rapide : vert, bleu, violet, orange, rouge — vitesse pour le vélo —, arrêts en
   pointillés gris, point vert au départ ; survoler la trace affiche l'allure ; zoom avec les
-  boutons + / −), bloc **Même parcours** quand la boucle a déjà été faite (classement au temps de
+  boutons + / −), **Profil** de la sortie (un panneau par mesure sur la distance : allure — vitesse
+  pour le vélo — lissée sur 200 m, fréquence cardiaque, cadence en pas par minute — tours de
+  pédale pour le vélo —, altitude du terrain ; survoler affiche toutes les valeurs au même
+  endroit ; les boutons sous le graphique masquent ou réaffichent une mesure, avec sa moyenne ;
+  une mesure absente de la montre — pas de ceinture, pas de capteur — n'est pas affichée), bloc **Même parcours** quand la boucle a déjà été faite (classement au temps de
   déplacement, meilleur temps, moyenne et FC moyenne des autres sorties, écart avec la sortie
   précédente — en vert si plus rapide —, liste des 30 sorties les plus récentes avec leur rang
   et leur écart au record), tableau des passages au

@@ -84,7 +84,7 @@ final class TrackFileParser
         $points = [];
         foreach ($fit->records as $record) {
             if (null !== $record->distanceMeters) {
-                $points[] = new TrackPoint($record->timestamp, $record->distanceMeters, $record->heartRate, $record->altitudeMeters, $record->latitude, $record->longitude);
+                $points[] = new TrackPoint($record->timestamp, $record->distanceMeters, $record->heartRate, $record->altitudeMeters, $record->latitude, $record->longitude, $record->cadence);
             }
         }
         if (\count($points) < 2) {
@@ -127,7 +127,11 @@ final class TrackFileParser
             foreach ($node->xpath('.//*[local-name()="hr"]') ?: [] as $hrNode) {
                 $hr = (int) $hrNode;
             }
-            $points[] = new TrackPoint($time, $distance, $hr, isset($node->ele) ? (float) $node->ele : null, $lat, $lon);
+            $cadence = null;
+            foreach ($node->xpath('.//*[local-name()="cad"]') ?: [] as $cadenceNode) {
+                $cadence = (float) $cadenceNode;
+            }
+            $points[] = new TrackPoint($time, $distance, $hr, isset($node->ele) ? (float) $node->ele : null, $lat, $lon, $cadence);
         }
         if (\count($points) < 2) {
             return null;
@@ -177,6 +181,8 @@ final class TrackFileParser
                 isset($point->AltitudeMeters) ? (float) $point->AltitudeMeters : null,
                 isset($point->Position) ? (float) $point->Position->LatitudeDegrees : null,
                 isset($point->Position) ? (float) $point->Position->LongitudeDegrees : null,
+                // Vélo : Cadence du point ; course : RunCadence de l'extension Garmin.
+                isset($point->Cadence) ? (float) $point->Cadence : self::tcxRunCadence($point),
             );
         }
 
@@ -266,5 +272,12 @@ final class TrackFileParser
         $a = sin($dLat / 2) ** 2 + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin($dLon / 2) ** 2;
 
         return 2 * self::EARTH_RADIUS_M * asin(min(1.0, sqrt($a)));
+    }
+
+    private static function tcxRunCadence(\SimpleXMLElement $point): ?float
+    {
+        $node = ($point->xpath('.//*[local-name()="RunCadence"]') ?: [])[0] ?? null;
+
+        return null === $node ? null : (float) $node;
     }
 }

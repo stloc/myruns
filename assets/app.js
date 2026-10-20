@@ -108,3 +108,8 @@ document.querySelectorAll('[data-activities-map]').forEach((element) => {
 document.querySelectorAll('[data-route-map]').forEach((element) => {
     import('./route_map.js').then(({ drawRouteMap }) => drawRouteMap(element));
 });
+
+// Profil de la sortie (page détail) : Chart.js n'est chargé que sur cette page.
+document.querySelectorAll('[data-activity-profile]').forEach((element) => {
+    import('./activity_profile.js').then(({ drawActivityProfile }) => drawActivityProfile(element));
+});

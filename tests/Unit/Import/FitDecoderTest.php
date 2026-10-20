@@ -19,7 +19,7 @@ final class FitDecoderTest extends TestCase
         $builder = (new FitFileBuilder())->session(1);
         for ($i = 0; $i <= 600; ++$i) {
             // 3,5 m/s pendant 10 minutes ; un point sur deux en horodatage compressé.
-            $builder->record(self::START + $i, $i * 3.5, 140 + intdiv($i, 60), 1 === $i % 2);
+            $builder->record(self::START + $i, $i * 3.5, 140 + intdiv($i, 60), 1 === $i % 2, 0 === $i ? null : 85);
         }
         $builder->lap(self::START, 300, 1050, 142, 150)->lap(self::START + 300, 300, 1050, 147, 155);
 
@@ -30,6 +30,8 @@ final class FitDecoderTest extends TestCase
         self::assertSame(self::START + 599, $fit->records[599]->timestamp, 'Horodatage compressé reconstruit');
         self::assertSame(2096.5, $fit->records[599]->distanceMeters);
         self::assertSame(149, $fit->records[599]->heartRate);
+        self::assertSame(85.0, $fit->records[599]->cadence);
+        self::assertNull($fit->records[0]->cadence, 'Cadence invalide (0xFF)');
         self::assertCount(2, $fit->laps);
         self::assertSame(300.0, $fit->laps[1]->timerSeconds);
         self::assertSame(155, $fit->laps[1]->maxHeartRate);

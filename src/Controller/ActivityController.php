@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Chart\ActivityProfile;
 use App\Chart\RouteMap;
 use App\Chart\SplitTable;
 use App\Chart\StartMap;
@@ -61,6 +62,7 @@ final class ActivityController extends AbstractController
         return $this->render('activity/show.html.twig', [
             'activity' => $activity,
             'route_map' => RouteMap::fromPoints($activity->routePoints(), $activity->sport->isRunning()),
+            'profile' => ActivityProfile::fromActivity($activity),
             'kilometers' => SplitTable::fromSplits($activity->splitsOf(SplitKind::Kilometer)),
             // Tours affichés seulement s'ils apportent autre chose que le découpage au km.
             'laps' => [] !== $laps && !SplitTable::areAutomaticKilometers($laps) ? SplitTable::fromSplits($laps) : null,

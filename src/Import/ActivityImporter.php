@@ -11,6 +11,7 @@ use App\Geocoding\CityFinder;
 use App\Import\Track\ParsedTrack;
 use App\Import\Track\RouteSimplifier;
 use App\Import\Track\SplitCalculator;
+use App\Import\Track\StreamSampler;
 use App\Import\Track\TrackPoint;
 use App\Repository\ActivityRepository;
 use App\Repository\UpsertOutcome;
@@ -56,6 +57,7 @@ final class ActivityImporter
         #[Autowire('%kernel.project_dir%')] private readonly string $projectDir,
         private readonly RouteSimplifier $routeSimplifier = new RouteSimplifier(),
         private readonly GarminExportParser $garminParser = new GarminExportParser(),
+        private readonly StreamSampler $streamSampler = new StreamSampler(),
     ) {
     }
 
@@ -392,12 +394,13 @@ final class ActivityImporter
         }
         $splits = Sport::Swim === $activity->sport ? [] : $this->splitCalculator->splits($ground ?? $track);
         $route = Sport::Swim === $activity->sport ? [] : $this->routeSimplifier->simplify($track->points);
+        $stream = Sport::Swim === $activity->sport ? [] : $this->streamSampler->sample(($ground ?? $track)->points);
 
         $start = $this->firstPosition($track);
         $city = null === $start ? null : $this->geocoder->cityAt((float) $start->latitude, (float) $start->longitude);
         $weather = null === $start ? null : $this->weather->during((float) $start->latitude, (float) $start->longitude, $activity->startDate, $activity->elapsedTimeSeconds);
 
-        $changed = $activity->replaceTrackData($splits, $this->splitCalculator->sustainedMaxHeartRate($track->points), $ground?->groundElevationGain, $route, $city);
+        $changed = $activity->replaceTrackData($splits, $this->splitCalculator->sustainedMaxHeartRate($track->points), $ground?->groundElevationGain, $route, $city, $stream);
         if (null !== $weather && $activity->replaceWeather($weather)) {
             $changed = true;
         }

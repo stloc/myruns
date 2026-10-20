@@ -13,6 +13,7 @@ final readonly class FitRecord
         public ?float $altitudeMeters,
         public ?float $latitude,
         public ?float $longitude,
+        public ?float $cadence = null,
     ) {
     }
 }
