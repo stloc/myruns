@@ -251,6 +251,9 @@ code { font-size: 0.9em; overflow-wrap: anywhere; }
 .button:hover { filter: brightness(1.08); }
 .button-secondary { background: transparent; color: var(--accent); }
 .button[disabled] { opacity: 0.6; cursor: progress; }
+.button-danger { border-color: var(--error-text); background: var(--error-bg); color: var(--error-text); }
+
+.danger-zone summary { cursor: pointer; color: var(--error-text); font-weight: 600; }
 
 /* Messages */
 .alert { padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 1rem; }

@@ -9,4 +9,6 @@ enum UpsertOutcome
     case Created;
     case Updated;
     case Unchanged;
+    /** Activité supprimée par l'utilisateur : ignorée. */
+    case Deleted;
 }

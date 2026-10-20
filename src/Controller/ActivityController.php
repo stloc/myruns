@@ -20,6 +20,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapQueryParameter;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\IsCsrfTokenValid;
 
 final class ActivityController extends AbstractController
 {
@@ -68,5 +69,16 @@ final class ActivityController extends AbstractController
             // Séance du programme (semaine en cours ou précédente) à laquelle la sortie est rattachée.
             'session_review' => $activity->sport->isRunning() ? $reviewer->review()?->sessionFor($activity) : null,
         ]);
+    }
+
+    #[Route('/activites/{id}/supprimer', name: 'activity_delete', methods: ['POST'])]
+    #[IsCsrfTokenValid('activity_delete')]
+    public function delete(Activity $activity, ActivityRepository $activities): Response
+    {
+        $name = '' !== $activity->name ? $activity->name : $activity->sport->label();
+        $activities->delete($activity);
+        $this->addFlash('success', \sprintf('Activité « %s » supprimée : elle ne sera pas réimportée.', $name));
+
+        return $this->redirectToRoute('activity_index');
     }
 }

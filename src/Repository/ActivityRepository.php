@@ -7,6 +7,7 @@ namespace App\Repository;
 use App\Doctrine\UtcDateTimeImmutableType;
 use App\Entity\Activity;
 use App\Entity\ActivitySplit;
+use App\Entity\DeletedActivity;
 use App\Enum\ActivitySort;
 use App\Enum\Sport;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
@@ -33,6 +34,9 @@ final class ActivityRepository extends ServiceEntityRepository
 
     /** @var array<string, array<string, Activity>> mêmes activités par minute de départ (plusieurs possibles) */
     private array $byStartKey = [];
+
+    /** @var array<string, array<string, DeletedActivity>>|null activités supprimées par minute de départ, chargées pour un import */
+    private ?array $deletedByStartKey = null;
 
     public function __construct(ManagerRegistry $registry)
     {
@@ -317,9 +321,14 @@ final class ActivityRepository extends ServiceEntityRepository
      *    compte (CSV Strava, résumé Garmin, plus complète) remplace une trace ; rien ne remplace une
      *    ligne d'export de compte (la première importée reste, Strava ou Garmin).
      *    Deux lignes du même export ne sont jamais fusionnées : leurs identifiants sont uniques.
+     * 3. Activité supprimée par l'utilisateur (mêmes règles) : ignorée, jamais recréée.
      */
     public function upsert(Activity $activity): UpsertResult
     {
+        if ($this->wasDeleted($activity)) {
+            return new UpsertResult(UpsertOutcome::Deleted, null);
+        }
+
         $known = $this->knownActivities();
         $existing = $known[$activity->id] ?? $this->findSameSessionFromOtherSource($activity);
 
@@ -399,6 +408,43 @@ final class ActivityRepository extends ServiceEntityRepository
         $this->getEntityManager()->flush();
         $this->byId = null;
         $this->byStartKey = [];
+        $this->deletedByStartKey = null;
+    }
+
+    /**
+     * Supprime l'activité (temps de passage et trace compris) et la retient pour que les imports
+     * et la synchro suivants ne la recréent pas.
+     */
+    public function delete(Activity $activity): void
+    {
+        $this->getEntityManager()->persist(new DeletedActivity($activity));
+        $this->getEntityManager()->remove($activity);
+        $this->flush();
+    }
+
+    /**
+     * Supprimée sous le même identifiant, ou même sortie supprimée venant d'une autre source
+     * (départ à ±1 minute, comme findSameSessionFromOtherSource()).
+     */
+    private function wasDeleted(Activity $activity): bool
+    {
+        if (null === $this->deletedByStartKey) {
+            $this->deletedByStartKey = [];
+            foreach ($this->getEntityManager()->getRepository(DeletedActivity::class)->findAll() as $deleted) {
+                $this->deletedByStartKey[$deleted->startKey][$deleted->id] = $deleted;
+            }
+        }
+
+        $start = $activity->startDate->setTimezone(new \DateTimeZone('UTC'));
+        foreach (['+0 minute', '-1 minute', '+1 minute'] as $shift) {
+            foreach ($this->deletedByStartKey[Activity::keyFor($start->modify($shift))] ?? [] as $deleted) {
+                if ($deleted->id === $activity->id || $deleted->source !== $activity->source || !self::isAccountExport($activity->source)) {
+                    return true;
+                }
+            }
+        }
+
+        return null !== $this->getEntityManager()->find(DeletedActivity::class, $activity->id);
     }
 
     /**

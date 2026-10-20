@@ -165,4 +165,14 @@
             {{ include('activity/_split_table.html.twig', {table: kilometers, label: 'Km'}, with_context = false) }}
         {% endif %}
     </section>
+
+    {# Confirmation en deux temps sans JavaScript (pas de boîte confirm() dans l'app de bureau). #}
+    <details class="card danger-zone">
+        <summary>Supprimer cette activité</summary>
+        <p>L'activité, ses temps de passage et sa trace seront effacés. Elle ne reviendra pas aux prochains imports ni à la synchro intervals.icu.</p>
+        <form method="post" action="{{ path('activity_delete', {id: activity.id}) }}">
+            <input type="hidden" name="_token" value="{{ csrf_token('activity_delete') }}">
+            <button type="submit" class="button button-danger">Confirmer la suppression</button>
+        </form>
+    </details>
 {% endblock %}

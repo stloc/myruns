@@ -42,6 +42,8 @@ ddev exec vendor/bin/phpunit
 Deux sources, combinables. Dédoublonnage : même identifiant, ou même sortie venant de deux
 sources différentes (départ à ±1 minute) ; deux lignes d'un même export ne sont jamais fusionnées.
 Entre un export Strava et un export Garmin de la même sortie, la première ligne importée reste.
+Une activité supprimée (bouton en bas de sa page détail) est retenue dans `deleted_activity` :
+imports et synchro l'ignorent ensuite, selon les mêmes règles (même identifiant ou même sortie).
 
 1. **Export de compte Strava** (officiel, gratuit) : Paramètres → Mon compte → *Télécharger ou
    supprimer votre compte* → *Demander une archive*. Strava envoie par e-mail un lien vers

@@ -10,8 +10,8 @@ final readonly class UpsertResult
 {
     public function __construct(
         public UpsertOutcome $outcome,
-        /** Activité gérée par Doctrine : la nouvelle, ou celle déjà connue qui a été conservée. */
-        public Activity $activity,
+        /** Activité gérée par Doctrine : la nouvelle, ou celle déjà connue qui a été conservée ; null si supprimée par l'utilisateur. */
+        public ?Activity $activity,
     ) {
     }
 }

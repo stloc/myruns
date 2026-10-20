@@ -10,6 +10,8 @@ final class ImportResult
     public int $updated = 0;
     public int $unchanged = 0;
     public int $ignored = 0;
+    /** Activités supprimées par l'utilisateur, retrouvées dans l'import : jamais recréées. */
+    public int $deleted = 0;
     /** Activités dont les temps de passage ont été (re)calculés depuis une trace. */
     public int $withSplits = 0;
     /** Traces dont le D+ a été recalculé sur l'altitude du terrain (IGN, Open-Meteo hors de France). */
@@ -24,6 +26,9 @@ final class ImportResult
     {
         $summary = \sprintf('%d nouvelle(s), %d mise(s) à jour, %d déjà connue(s), %d temps de passage calculé(s), %d fichier(s) ignoré(s)', $this->created, $this->updated, $this->unchanged, $this->withSplits, $this->ignored);
 
+        if ($this->deleted > 0) {
+            $summary .= \sprintf(', %d supprimée(s) ignorée(s)', $this->deleted);
+        }
         if ($this->groundElevationMissing > 0) {
             $summary .= \sprintf(', D+ du terrain indisponible pour %d trace(s) (service d\'altitude injoignable : relancer l\'import plus tard)', $this->groundElevationMissing);
         }
@@ -43,6 +48,7 @@ final class ImportResult
             'updated' => $this->updated,
             'unchanged' => $this->unchanged,
             'ignored' => $this->ignored,
+            'deleted' => $this->deleted,
             'withSplits' => $this->withSplits,
             'groundElevation' => $this->groundElevation,
             'groundElevationMissing' => $this->groundElevationMissing,
@@ -61,6 +67,7 @@ final class ImportResult
         $result->updated = $int('updated');
         $result->unchanged = $int('unchanged');
         $result->ignored = $int('ignored');
+        $result->deleted = $int('deleted');
         $result->withSplits = $int('withSplits');
         $result->groundElevation = $int('groundElevation');
         $result->groundElevationMissing = $int('groundElevationMissing');

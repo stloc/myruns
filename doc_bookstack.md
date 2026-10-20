@@ -121,6 +121,7 @@ SQLite : un fichier `myruns.db` dans le dossier des données (application de bur
 | `athlete_profile` | Une seule ligne : FC max et de repos, année de naissance, année de début de la course, poids actuel et visé (tous facultatifs), dernier objectif saisi (distance, temps, date), réglages du programme (sorties par semaine, jour et heure du club) |
 | `training_week_override` | Ajustements du programme par semaine (lundi de la semaine, club oui/non, nombre de sorties) |
 | `race_result` | Courses officielles saisies : date, distance, temps, nom |
+| `deleted_activity` | Activités supprimées par l'utilisateur (identifiant, source, minute de départ, nom, date de suppression) : les imports et la synchro ne les recréent pas |
 | `activity_split` | Temps de passage : un kilomètre calculé ou un tour de la montre par ligne (distance, temps, FC moyenne et max, D+) |
 
 Le schéma est géré par les migrations Doctrine (`migrations/`), appliquées automatiquement à
@@ -529,6 +530,17 @@ Guide détaillé à transmettre à l'utilisateur : `GUIDE.md` du dépôt.
 
 1. Ouvrir [https://mystrava.ddev.site/activites](https://mystrava.ddev.site/activites).
 2. Cliquer sur le nom de l'activité : la carte du parcours, les kilomètres et les tours s'affichent.
+
+**Supprimer une activité** (montre lancée par erreur, doublon, séance à ne pas compter)
+
+1. Ouvrir l'activité depuis [https://mystrava.ddev.site/activites](https://mystrava.ddev.site/activites).
+2. Tout en bas : **Supprimer cette activité** → **Confirmer la suppression**.
+3. L'activité disparaît des listes et des calculs ; elle ne revient pas aux imports ni aux synchros
+   suivants (le bilan d'import l'indique : « N supprimée(s) ignorée(s) »).
+
+Une suppression ne s'annule pas depuis l'application : en cas d'erreur, transmettre au développeur
+le nom et la date de la sortie (il efface la ligne correspondante de `deleted_activity`, puis
+l'utilisateur relance l'import).
 
 **Comparer une sortie avec les précédentes sur la même boucle**
 

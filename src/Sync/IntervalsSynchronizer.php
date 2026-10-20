@@ -78,9 +78,10 @@ final class IntervalsSynchronizer
                 UpsertOutcome::Created => ++$result->import->created,
                 UpsertOutcome::Updated => ++$result->import->updated,
                 UpsertOutcome::Unchanged => ++$result->import->unchanged,
+                UpsertOutcome::Deleted => ++$result->import->deleted,
             };
 
-            if (!$upsert->activity->hasSplits() && '' !== self::string($remote, 'file_type')) {
+            if (null !== $upsert->activity && !$upsert->activity->hasSplits() && '' !== self::string($remote, 'file_type')) {
                 $this->attachFile($upsert->activity, self::string($remote, 'id'), self::string($remote, 'file_type'), $result->import);
             }
         }

@@ -348,6 +348,9 @@ final class ActivityImporter
             $upsert = $this->activities->upsert($track->activity);
             $this->count($upsert->outcome, $result);
             $activity = $upsert->activity;
+            if (null === $activity) {
+                return; // Sortie supprimée par l'utilisateur.
+            }
         }
 
         $this->attachSplits($activity, $track, $result);
@@ -418,6 +421,7 @@ final class ActivityImporter
             UpsertOutcome::Created => ++$result->created,
             UpsertOutcome::Updated => ++$result->updated,
             UpsertOutcome::Unchanged => ++$result->unchanged,
+            UpsertOutcome::Deleted => ++$result->deleted,
         };
     }
 }

@@ -29,7 +29,9 @@ tournent aussi sur l'hôte. `ddev start` ne demande `sudo` qu'au tout premier d�
   d'une autre source à ±1 min (`Activity::$startKey`, index non unique). **Jamais de fusion entre
   deux lignes d'un même export** (bug corrigé : 3 activités perdues), rien ne remplace une ligne
   d'export de compte (CSV Strava, résumé Garmin : la première importée reste).
-  `tests/Integration/DeduplicationTest.php` fige ces règles.
+  `tests/Integration/DeduplicationTest.php` fige ces règles. Activité supprimée par l'utilisateur
+  (`ActivityRepository::delete()`) : retenue dans `DeletedActivity`, `upsert()` renvoie
+  `UpsertOutcome::Deleted` (activité `null`) pour elle, avec les mêmes règles ; jamais recréée.
 - Export Garmin Connect (`GarminExportParser`) : `*_summarizedActivities.json` (cm, ms) puis les
   FIT des zips imbriqués `UploadedFiles_*.zip` (extraits dans le dossier temporaire, effacés par
   `ActivityImporter::cleanUp()`) ; pas de nom de fichier dans le résumé → rattachement par l'heure

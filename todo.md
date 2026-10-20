@@ -1,4 +1,4 @@
 - synchro intervals.icu et import compatible avec autres marques comme garmin en priorité
 - tuto moins technique (pour utilisateurs non dev) en parallèle du readme du projet
 - challenfer quelles fonctionnalités strava payantes on pourrait implémenter ici
-- colonne ville
+- capture écran dans tuto et readme
