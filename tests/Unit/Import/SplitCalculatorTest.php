@@ -42,6 +42,33 @@ final class SplitCalculatorTest extends TestCase
         self::assertSame(160, $splits[2]['avg_hr']);
     }
 
+    public function testDistanceUpdatedEveryOtherSecondIsNotAPause(): void
+    {
+        // Un point par seconde, distance avancée par paliers de 6 m toutes les 2 s (3 m/s, 5:33/km),
+        // puis 60 s immobile chronomètre en marche, puis de nouveau 3 m/s.
+        $points = [];
+        $distance = 0.0;
+        $time = 0;
+        for ($i = 0; $i < 400; ++$i) {
+            $points[] = new TrackPoint($time++, $distance);
+            $distance += 0 === $i % 2 ? 0.0 : 6.0;
+        }
+        for ($i = 0; $i < 60; ++$i) {
+            $points[] = new TrackPoint($time++, $distance);
+        }
+        for ($i = 0; $i < 400; ++$i) {
+            $distance += 0 === $i % 2 ? 0.0 : 6.0;
+            $points[] = new TrackPoint($time++, $distance);
+        }
+
+        $splits = (new SplitCalculator())->kilometers($points);
+
+        self::assertCount(3, $splits);
+        self::assertEqualsWithDelta(1000 / 3, $splits[0]['seconds'], 2);
+        // L'arrêt au milieu du 2ᵉ km n'est pas compté.
+        self::assertEqualsWithDelta(1000 / 3, $splits[1]['seconds'], 2);
+    }
+
     public function testDeviceLapsAreKeptOnlyWhenThereAreSeveral(): void
     {
         $points = [new TrackPoint(0, 0.0), new TrackPoint(300, 1000.0)];

@@ -18,6 +18,11 @@ final class SplitCalculator
     private const MOVING_SPEED_THRESHOLD = 0.5;
     /** Un écart plus long entre deux points correspond à une pause du chronomètre. */
     private const MAX_GAP_SECONDS = 30;
+    /**
+     * Certaines montres enregistrent un point par seconde mais n'avancent la distance que toutes les 1 à
+     * 2 s : une distance figée moins longtemps que cela n'est pas un arrêt.
+     */
+    private const MAX_DISTANCE_REFRESH_SECONDS = 3;
     /** Dernier tronçon conservé s'il dépasse cette distance (m). */
     private const MIN_LAST_SPLIT = 100.0;
     private const ELEVATION_NOISE = 2.0;
@@ -69,13 +74,14 @@ final class SplitCalculator
         $hrMax = null;
         $gain = 0.0;
         $lastAltitude = $points[0]->altitudeMeters;
+        $movingSegments = $this->movingSegments($points);
 
         for ($i = 1, $n = \count($points); $i < $n; ++$i) {
             $a = $points[$i - 1];
             $b = $points[$i];
             $dt = $b->timestamp - $a->timestamp;
             $dd = $b->distanceMeters - $a->distanceMeters;
-            $moving = $dt > 0 && $dt <= self::MAX_GAP_SECONDS && $dd / $dt >= self::MOVING_SPEED_THRESHOLD;
+            $moving = $movingSegments[$i];
 
             // Le segment [a, b] peut franchir une ou plusieurs bornes kilométriques : on interpole.
             $segmentStart = $a->distanceMeters;
@@ -100,7 +106,12 @@ final class SplitCalculator
                 $gain = 0.0;
             }
 
-            $remainingTime = $moving ? $dt * ($b->distanceMeters - $segmentStart) / $dd : 0.0;
+            // Distance pas encore actualisée par la montre (0 m) : intervalle compté entier.
+            $remainingTime = match (true) {
+                !$moving => 0.0,
+                $dd > 0 => $dt * ($b->distanceMeters - $segmentStart) / $dd,
+                default => (float) $dt,
+            };
             $seconds += $remainingTime;
             if (null !== $b->heartRate) {
                 $hrMax = max($hrMax ?? 0, $b->heartRate);
@@ -125,6 +136,42 @@ final class SplitCalculator
         }
 
         return $this->withElevationChanges($splits, $points);
+    }
+
+    /**
+     * Pour chaque intervalle [i - 1, i] : l'athlète avance-t-il ? Une distance qui ne bouge pas compte
+     * comme du mouvement si elle repart en moins de 3 s (montre qui n'a pas encore actualisé la distance).
+     *
+     * @param list<TrackPoint> $points
+     *
+     * @return array<int, bool> indexé par le point d'arrivée de l'intervalle (à partir de 1)
+     */
+    private function movingSegments(array $points): array
+    {
+        $moving = [];
+        $n = \count($points);
+        for ($i = 1; $i < $n; ++$i) {
+            $dt = $points[$i]->timestamp - $points[$i - 1]->timestamp;
+            $dd = $points[$i]->distanceMeters - $points[$i - 1]->distanceMeters;
+            if ($dt <= 0 || $dt > self::MAX_GAP_SECONDS || $dd > 0) {
+                $moving[$i] = $dt > 0 && $dt <= self::MAX_GAP_SECONDS && $dd / $dt >= self::MOVING_SPEED_THRESHOLD;
+                continue;
+            }
+
+            // Palier de distance figée : du dernier point qui a avancé au premier qui avance de nouveau.
+            $from = $i - 1;
+            while ($from > 0 && $points[$from - 1]->distanceMeters >= $points[$from]->distanceMeters) {
+                --$from;
+            }
+            $to = $i;
+            while ($to < $n - 1 && $points[$to + 1]->distanceMeters <= $points[$to]->distanceMeters) {
+                ++$to;
+            }
+            $moving[$i] = $from > 0 && $to < $n - 1
+                && $points[$to + 1]->timestamp - $points[$from]->timestamp <= self::MAX_DISTANCE_REFRESH_SECONDS;
+        }
+
+        return $moving;
     }
 
     /**
