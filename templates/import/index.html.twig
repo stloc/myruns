@@ -19,7 +19,7 @@
         <h2>Nouvelles séances (intervals.icu)</h2>
         {% if intervals_configured %}
             <p>Récupère les séances arrivées dans intervals.icu depuis votre montre, avec leurs temps de passage. Aussi lancé chaque jour automatiquement si la tâche planifiée est en place.</p>
-            <form method="post" action="{{ path('import_intervals') }}" data-loading-form>
+            <form method="post" action="{{ path('import_intervals') }}" data-controller="loading-form" data-action="loading-form#submit">
                 <input type="hidden" name="_token" value="{{ csrf_token('import_intervals') }}">
                 <button type="submit" class="button" data-loading-label="Synchronisation…">Synchroniser maintenant</button>
             </form>
@@ -31,7 +31,7 @@
     <div class="grid-2">
         <section class="card">
             <h2>Envoyer un fichier</h2>
-            {{ form_start(form, {attr: {class: 'form', 'data-loading-form': ''}}) }}
+            {{ form_start(form, {attr: {class: 'form', 'data-controller': 'loading-form', 'data-action': 'loading-form#submit'}}) }}
                 {{ form_row(form.file) }}
                 <div class="form-actions">
                     <button type="submit" class="button" data-loading-label="Import en cours…">Importer</button>
@@ -44,7 +44,7 @@
             <section class="card">
                 <h2>Fichiers déjà sur ce poste</h2>
                 <p>Archive de plus de 1 Go, dossier décompressé ou alimenté par un outil : lu sur place, sans envoi. Dossier configuré dans <code>STRAVA_EXPORT_PATH</code> : <code>{{ default_path }}</code></p>
-                <form method="post" action="{{ path('import_folder') }}" data-loading-form>
+                <form method="post" action="{{ path('import_folder') }}" data-controller="loading-form" data-action="loading-form#submit">
                     <input type="hidden" name="_token" value="{{ csrf_token('import_folder') }}">
                     <button type="submit" class="button button-secondary" data-loading-label="Import en cours…">Importer le dossier</button>
                 </form>

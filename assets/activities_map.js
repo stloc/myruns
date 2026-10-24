@@ -7,9 +7,11 @@ const RADIUS = 60;
 const LIST_ZOOM = 17;
 const LIST_LIMIT = 30;
 
-// Carte des départs (page Activités) ; couleurs dans app.css (classes start-*).
-export function drawActivitiesMap(element) {
-    const { points, bounds } = JSON.parse(element.dataset.activitiesMap);
+// Carte des départs (page Activités) ; couleurs dans app.css (classes start-*). Renvoie la carte
+// Leaflet, que le contrôleur détruit à sa déconnexion.
+export function drawActivitiesMap(element, { points, bounds }) {
+    // Page remontrée depuis le cache de Turbo : la copie garde le dessin de la carte précédente.
+    element.replaceChildren();
     const map = L.map(element, { scrollWheelZoom: false });
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
@@ -120,4 +122,6 @@ export function drawActivitiesMap(element) {
     map.on('zoomend', render);
     map.fitBounds(bounds, { padding: [24, 24], maxZoom: 13 });
     render();
+
+    return map;
 }

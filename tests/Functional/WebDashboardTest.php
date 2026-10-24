@@ -68,7 +68,7 @@ final class WebDashboardTest extends WebTestCase
         $db = $profile->getCollector('db');
         self::assertInstanceOf(DoctrineDataCollector::class, $db);
         self::assertSame(4, $db->getQueryCount());
-        self::assertSelectorNotExists('[data-activities-map]', 'Pas de carte des départs sans trace GPS (CSV seul)');
+        self::assertSelectorNotExists('[data-controller="activities-map"]', 'Pas de carte des départs sans trace GPS (CSV seul)');
     }
 
     public function testActivitySearch(): void
@@ -145,7 +145,7 @@ final class WebDashboardTest extends WebTestCase
         self::assertSelectorCount(4, '.split-table tbody tr');
         self::assertSelectorTextContains('.split-table tbody tr:nth-child(2)', 'rapide');
         self::assertSelectorTextContains('.split-table tbody tr:nth-child(2)', '4:10/km');
-        self::assertSelectorNotExists('[data-route-map]', 'Pas de carte sans positions GPS');
+        self::assertSelectorNotExists('[data-controller="route-map"]', 'Pas de carte sans positions GPS');
     }
 
     public function testActivityDetailShowsTheRouteMap(): void
@@ -172,7 +172,7 @@ final class WebDashboardTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('#route-map-title', 'Parcours');
         /** @var array{segments: list<array{class: string, label: string}>, bounds: list<list<float>>} $route */
-        $route = json_decode((string) $crawler->filter('[data-route-map]')->attr('data-route-map'), true, flags: \JSON_THROW_ON_ERROR);
+        $route = json_decode((string) $crawler->filter('[data-controller="route-map"]')->attr('data-route-map-route-value'), true, flags: \JSON_THROW_ON_ERROR);
         // Tronçons de 100 m ; le dernier, raccourci par l'arrondi de la distance GPS, rejoint le précédent.
         self::assertCount(9, $route['segments']);
         self::assertSame('pace-1', $route['segments'][0]['class']);
@@ -243,10 +243,10 @@ final class WebDashboardTest extends WebTestCase
 
         $crawler = $this->client->request('GET', '/activites');
         self::assertSelectorTextContains('#start-map-title', 'Carte des départs');
-        self::assertSelectorExists('details.start-map:not([open]) [data-activities-map]', 'Carte repliée par défaut');
+        self::assertSelectorExists('details.start-map:not([open]) [data-controller="activities-map"]', 'Carte repliée par défaut');
         self::assertSelectorTextContains('.card-subtitle', '3 sortie(s) avec trace GPS, toutes pages confondues');
         /** @var array{points: list<array{0: float, 1: float, 2: string, 3: string}>, bounds: list<list<float>>} $map */
-        $map = json_decode((string) $crawler->filter('[data-activities-map]')->attr('data-activities-map'), true, flags: \JSON_THROW_ON_ERROR);
+        $map = json_decode((string) $crawler->filter('[data-controller="activities-map"]')->attr('data-activities-map-data-value'), true, flags: \JSON_THROW_ON_ERROR);
         self::assertCount(3, $map['points']);
         // Du plus récent au plus ancien, avec un lien vers le détail.
         // JSON : 48.0 redevient l'entier 48, d'où assertEquals.
@@ -257,14 +257,14 @@ final class WebDashboardTest extends WebTestCase
 
         // La carte suit la recherche (toutes pages confondues).
         $crawler = $this->client->request('GET', '/activites?q=trace+2');
-        $map = json_decode((string) $crawler->filter('[data-activities-map]')->attr('data-activities-map'), true, flags: \JSON_THROW_ON_ERROR);
+        $map = json_decode((string) $crawler->filter('[data-controller="activities-map"]')->attr('data-activities-map-data-value'), true, flags: \JSON_THROW_ON_ERROR);
         self::assertIsArray($map);
         self::assertIsArray($map['points']);
         self::assertCount(1, $map['points']);
         self::assertSelectorTextContains('.card-subtitle', 'correspondant à la recherche');
 
         $this->client->request('GET', '/activites?q=marathon');
-        self::assertSelectorNotExists('[data-activities-map]', 'Aucun départ connu parmi les résultats');
+        self::assertSelectorNotExists('[data-controller="activities-map"]', 'Aucun départ connu parmi les résultats');
     }
 
     public function testFolderImportIsHiddenWithoutConfiguredFolder(): void
@@ -424,7 +424,7 @@ final class WebDashboardTest extends WebTestCase
         $location = (string) $this->client->getResponse()->headers->get('Location');
         self::assertMatchesRegularExpression('#^/import/[0-9a-f]{16}$#', $location);
         $crawler = $this->client->followRedirect();
-        self::assertSelectorTextContains('[data-import-label]', '1 / 3 traces (33 %)');
+        self::assertSelectorTextContains('[data-import-job-target="label"]', '1 / 3 traces (33 %)');
 
         $this->client->request('GET', '/import');
         self::assertSelectorTextContains('body', 'Import inachevé');

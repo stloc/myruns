@@ -68,7 +68,7 @@ final class ImportController extends AbstractController
 
     /**
      * Avancement d'un import trop long pour une seule requête : la page enchaîne les étapes
-     * (assets/app.js), le bouton « Continuer » sert sans JavaScript ou après une erreur.
+     * (assets/controllers/import_job_controller.js), le bouton « Continuer » sert sans JavaScript ou après une erreur.
      */
     #[Route('/import/{id}', name: 'import_job', requirements: ['id' => '[0-9a-f]{16}'], methods: ['GET'])]
     public function job(string $id): Response

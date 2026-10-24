@@ -11,8 +11,16 @@ réussite d'un objectif chrono (VDOT + coach IA).
   `.deb` + AppImage (Linux, PHP statique static-php-cli « common », sans intl), construits par
   GitHub Actions (`.github/workflows/desktop.yml`, sur tag `v*`)
 - `symfony/ai-bundle` + `symfony/ai-anthropic-platform` **0.14** (pré-1.0 : vérifier l'API dans `vendor/`)
-- Twig + AssetMapper (pas de build JS, pas de Stimulus) ; graphiques en SVG rendus côté serveur,
-  sauf le profil de la page détail (Chart.js, chargé à la demande comme Leaflet)
+- Twig + AssetMapper (pas de build JS) + **Stimulus** (`symfony/stimulus-bundle` 3.6) + **Turbo**
+  (`symfony/ux-turbo` 2.36, Turbo 8 : navigation et formulaires sans rechargement). Tout comportement
+  JS est un contrôleur de `assets/controllers/` (`app.js` ne fait que les importer) : `disconnect()`
+  libère ce que `connect()` crée, et `connect()` doit supporter une page remontrée depuis le cache
+  de Turbo (copie du DOM déjà modifié : vider le conteneur, remettre l'état initial) ; contrôleurs
+  lourds (cartes, profil) en `/* stimulusFetch: 'lazy' */`. Un POST traité par Turbo **redirige**,
+  ou répond 422 s'il est invalide (jamais 200) ; seule exception, le formulaire d'`/objectif`
+  (résultat affiché en réponse au POST) en `data-turbo="false"`. Page sans cache :
+  `{% block head %}<meta name="turbo-cache-control" content="no-cache">{% endblock %}`. Graphiques en SVG rendus côté serveur, sauf le
+  profil de la page détail (Chart.js, chargé à la demande comme Leaflet)
 
 ## Préfixe de commandes
 
@@ -52,7 +60,7 @@ tournent aussi sur l'hôte. `ddev start` ne demande `sudo` qu'au tout premier d�
 - Import web **par étapes** (`ImportJobs`, état JSON + archive dans `<données>/uploads/`) :
   `ActivityImporter::begin()` (CSV) puis `continue()` depuis une position, jusqu'à une échéance
   (`app.import_step_seconds`, 3 s ; 0 en test = une trace par étape) ; l'ordre des traces doit rester
-  stable (position = reprise). Page `/import/{id}` pilotée par `fetch` (`assets/app.js`), bouton
+  stable (position = reprise). Page `/import/{id}` pilotée par `fetch` (`import_job_controller.js`), bouton
   « Continuer » sans JS. Services publics (IGN, Open-Meteo, Nominatim) derrière `App\Http\NetworkGuard` :
   plus d'appel après 3 échecs de suite, budget réseau en web, intervalle minimal entre appels.
 - Ville : commune du 1er point GPS (`src/Geocoding/CityFinder` : `IgnReverseGeocoder`, index
@@ -67,19 +75,20 @@ tournent aussi sur l'hôte. `ddev start` ne demande `sudo` qu'au tout premier d�
 - Carte : trace simplifiée (`RouteSimplifier`, 20 m, ≤ 2 000 points) dans `ActivityRoute` (table
   à part, OneToOne porté par `Activity` avec `orphanRemoval` : SQLite n'applique pas les clés
   étrangères), posée par `replaceTrackData()`. Allure par tronçon calculée en PHP
-  (`src/Chart/RouteMap.php`), dessin Leaflet chargé à la demande (`assets/route_map.js`), tuiles
+  (`src/Chart/RouteMap.php`), dessin Leaflet chargé à la demande (`route_map_controller.js`), tuiles
   OSM = seul appel réseau du navigateur (autorisé dans la CSP Tauri `img-src`).
 - Carte des départs (`/activites`) : `ActivityRoute::$startLatitude/$startLongitude` (posées par le
   constructeur ; migration `Version20261017180000` les calcule en PHP pour l'existant) ;
   `ActivityRepository::startPositions()` reprend les critères de la recherche, toutes pages
-  confondues ; `src/Chart/StartMap.php` → `assets/activities_map.js` : regroupement maison par
+  confondues ; `src/Chart/StartMap.php` → `assets/activities_map.js` (importé à la 1ʳᵉ ouverture par
+  `activities_map_controller.js`) : regroupement maison par
   distance (60 px, fusion des groupes trop proches, pas de plugin Leaflet), liste au zoom 17.
 - Profil de la sortie (page détail) : `StreamSampler` (~600 points : distance, temps, altitude du
   terrain, FC, cadence) → `ActivityStream` (table à part comme `ActivityRoute`, remplie même sans
   GPS), posé par `replaceTrackData()`. Cadence = cycles/min de la source (FIT champ 4 + 53, GPX
   `cad`, TCX `Cadence`/`RunCadence`), ×2 à l'affichage à pied (pas/min). `src/Chart/ActivityProfile`
-  (allure lissée sur 200 m, arrêts exclus) → `assets/activity_profile.js` : **Chart.js direct via
-  l'importmap** (pas de Symfony UX Chart.js : il impose Stimulus), un panneau par série sur des
+  (allure lissée sur 200 m, arrêts exclus) → `activity_profile_controller.js` : **Chart.js direct via
+  l'importmap** (pas de Symfony UX Chart.js : options Chart.js pilotées en JS, couleurs CSS), un panneau par série sur des
   axes Y empilés (jamais deux échelles sur une même zone), couleurs `--profile-*` d'`app.css`.
 - Même parcours (`src/Route/`, page détail) : rien n'est stocké ; candidats en SQL (départ à < 300 m
   via `ActivityRoute::$startLatitude/$startLongitude`, même famille de sport, distance ±10 %), puis

@@ -10,7 +10,7 @@
     <div class="grid-2 grid-goal">
         <section class="card">
             <h2>Votre objectif</h2>
-            {{ form_start(form, {attr: {class: 'form', 'data-loading-form': ''}}) }}
+            {{ form_start(form, {attr: {class: 'form', 'data-controller': 'loading-form', 'data-action': 'loading-form#submit', 'data-turbo': 'false'}}) }}
                 {{ form_row(form.distance) }}
                 {{ form_row(form.time) }}
                 {{ form_row(form.date) }}

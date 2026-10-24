@@ -8,7 +8,7 @@
     </div>
 
     <section class="card">
-        <form method="get" class="search-form" role="search" aria-label="Rechercher des activités">
+        <form method="get" class="search-form" data-controller="sort-direction" role="search" aria-label="Rechercher des activités">
             <div class="search-field search-field-wide">
                 <label for="q">Nom ou ville contient</label>
                 <input type="search" id="q" name="q" value="{{ search.words|join(' ') }}" placeholder="trail, club, Rennes…">
@@ -45,7 +45,7 @@
             </div>
             <div class="search-field">
                 <label for="tri">Trier par</label>
-                <select id="tri" name="tri">
+                <select id="tri" name="tri" data-sort-direction-target="sort" data-action="sort-direction#reset">
                     {% for sort in sorts %}
                         <option value="{{ sort.value }}" data-direction="{{ sort.defaultDirection.name == 'Ascending' ? 'asc' : 'desc' }}" {% if sort == search.sort %}selected{% endif %}>{{ sort.label }}</option>
                     {% endfor %}
@@ -53,7 +53,7 @@
             </div>
             <div class="search-field">
                 <label for="ordre">Ordre</label>
-                <select id="ordre" name="ordre">
+                <select id="ordre" name="ordre" data-sort-direction-target="direction">
                     <option value="desc" {% if search.direction.name == 'Descending' %}selected{% endif %}>Décroissant ↓</option>
                     <option value="asc" {% if search.direction.name == 'Ascending' %}selected{% endif %}>Croissant ↑</option>
                 </select>
@@ -75,7 +75,7 @@
                 {{ start_map.points|length }} sortie(s) avec trace GPS{% if search.filtered %} correspondant à la recherche{% endif %}, toutes pages confondues.
                 Les départs proches sont regroupés : zoomer ou cliquer sur un groupe pour le détailler.
             </p>
-            <div class="route-map" data-activities-map="{{ {points: start_map.points, bounds: start_map.bounds}|json_encode }}" role="region" aria-label="Carte des départs des activités"></div>
+            <div class="route-map" data-controller="activities-map" data-activities-map-data-value="{{ {points: start_map.points, bounds: start_map.bounds}|json_encode }}" role="region" aria-label="Carte des départs des activités"></div>
         </details>
     {% endif %}
 

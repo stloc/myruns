@@ -324,6 +324,10 @@ le profil, les courses officielles et les ajustements du programme, non : sauveg
   recalculé sur l'altitude du terrain (mention « altitude du terrain » sur le détail, avec la valeur
   enregistrée à côté : IGN en France, précision métrique ; modèle mondial à 90 m à l'étranger, moins
   fin). Une montre sans baromètre surestime ou sous-estime souvent le relief.
+- **Temps de passage au km nettement plus rapides que l'allure moyenne** (activité importée avant
+  octobre 2026) → ancien calcul qui prenait pour des arrêts les secondes où la montre n'avait pas
+  encore actualisé la distance → réimporter l'archive Strava ou Garmin : les passages sont
+  recalculés. Les tours de la montre, eux, étaient justes.
 - **Une course apparaît en « Course » au lieu de « Trail » (ou l'inverse)** → le type vient de la
   source (intervals.icu, fichier) ou du nom de la sortie : un nom contenant « trail » classe la
   course en Trail → renommer la sortie (dans Strava / intervals.icu) puis réimporter ou resynchroniser.

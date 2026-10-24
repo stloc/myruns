@@ -1844,6 +1844,20 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *     enable_static_query_cache?: bool|Param, // Default: true
  *     connection_keys?: list<mixed>,
  * }
+ * @psalm-type StimulusConfig = array{
+ *     controller_paths?: list<scalar|Param|null>,
+ *     controllers_json?: scalar|Param|null, // Default: "%kernel.project_dir%/assets/controllers.json"
+ * }
+ * @psalm-type TurboConfig = array{
+ *     broadcast?: bool|array{
+ *         enabled?: bool|Param, // Default: true
+ *         entity_template_prefixes?: list<scalar|Param|null>,
+ *         doctrine_orm?: bool|array{ // Enable the Doctrine ORM integration
+ *             enabled?: bool|Param, // Default: true
+ *         },
+ *     },
+ *     default_transport?: scalar|Param|null, // Default: "default"
+ * }
  * @psalm-type ConfigType = array{
  *     imports?: ImportsConfig,
  *     parameters?: ParametersConfig,
@@ -1855,6 +1869,8 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *     security?: SecurityConfig,
  *     doctrine?: DoctrineConfig,
  *     doctrine_migrations?: DoctrineMigrationsConfig,
+ *     stimulus?: StimulusConfig,
+ *     turbo?: TurboConfig,
  *     "when@dev"?: array{
  *         imports?: ImportsConfig,
  *         parameters?: ParametersConfig,
@@ -1867,6 +1883,8 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         security?: SecurityConfig,
  *         doctrine?: DoctrineConfig,
  *         doctrine_migrations?: DoctrineMigrationsConfig,
+ *         stimulus?: StimulusConfig,
+ *         turbo?: TurboConfig,
  *     },
  *     "when@prod"?: array{
  *         imports?: ImportsConfig,
@@ -1879,6 +1897,8 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         security?: SecurityConfig,
  *         doctrine?: DoctrineConfig,
  *         doctrine_migrations?: DoctrineMigrationsConfig,
+ *         stimulus?: StimulusConfig,
+ *         turbo?: TurboConfig,
  *     },
  *     "when@test"?: array{
  *         imports?: ImportsConfig,
@@ -1893,6 +1913,8 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         doctrine?: DoctrineConfig,
  *         doctrine_migrations?: DoctrineMigrationsConfig,
  *         dama_doctrine_test?: DamaDoctrineTestConfig,
+ *         stimulus?: StimulusConfig,
+ *         turbo?: TurboConfig,
  *     },
  *     ...<string, ExtensionType|array{ // extra keys must follow the when@%env% pattern or match an extension alias
  *         imports?: ImportsConfig,

@@ -34,7 +34,7 @@ final class ActivityProfileTest extends WebTestCase
         self::assertSelectorTextContains('#activity-profile-title', 'Profil');
         $legend = $client->getCrawler()->filter('.activity-profile-legend li')->each(static fn ($li): string => preg_replace('/\s+/', ' ', trim($li->text())) ?? '');
         self::assertSame(['Allure moy. 5:00/km', 'Fréquence cardiaque moy. 148 bpm', 'Altitude 20 – 30 m'], $legend, 'Sans capteur : pas de cadence');
-        $data = json_decode((string) $client->getCrawler()->filter('[data-activity-profile]')->attr('data-activity-profile'), true, flags: \JSON_THROW_ON_ERROR);
+        $data = json_decode((string) $client->getCrawler()->filter('[data-controller="activity-profile"]')->attr('data-activity-profile-profile-value'), true, flags: \JSON_THROW_ON_ERROR);
         self::assertIsArray($data);
         self::assertIsArray($data['series']);
         self::assertIsArray($data['distances']);

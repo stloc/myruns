@@ -107,6 +107,8 @@ code { font-size: 0.9em; overflow-wrap: anywhere; }
 .muted { color: var(--text-muted); }
 
 /* En-tête */
+/* Barre de chargement de Turbo entre deux pages (bleue par défaut). */
+.turbo-progress-bar { background-color: var(--accent); }
 .site-header {
     display: flex;
     flex-wrap: wrap;

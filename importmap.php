@@ -30,4 +30,7 @@ return [
     'leaflet/dist/leaflet.min.css' => ['version' => '1.9.4', 'type' => 'css'],
     'chart.js' => ['version' => '4.5.1'],
     '@kurkle/color' => ['version' => '0.3.4'],
+    '@hotwired/stimulus' => ['version' => '3.2.2'],
+    '@symfony/stimulus-bundle' => ['path' => './vendor/symfony/stimulus-bundle/assets/dist/loader.js'],
+    '@hotwired/turbo' => ['version' => '8.0.23'],
 ];
