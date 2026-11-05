@@ -118,7 +118,16 @@ code { font-size: 0.9em; overflow-wrap: anywhere; }
     background: var(--surface);
     border-bottom: 1px solid var(--border);
 }
-.brand { font-weight: 700; font-size: 1.15rem; text-decoration: none; color: var(--accent); }
+.brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 700;
+    font-size: 1.15rem;
+    text-decoration: none;
+    color: var(--accent);
+}
+.brand img { display: block; }
 .site-header nav { display: flex; flex-wrap: wrap; gap: 0.25rem; }
 .site-header nav a {
     padding: 0.35rem 0.75rem;
