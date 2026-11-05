@@ -10,6 +10,11 @@ réussite d'un objectif chrono (VDOT + coach IA).
 - Application de bureau : **Tauri 2** (`desktop/`, Rust), PHP embarqué ; installeur NSIS (Windows),
   `.deb` + AppImage (Linux, PHP statique static-php-cli « common », sans intl), construits par
   GitHub Actions (`.github/workflows/desktop.yml`, sur tag `v*`)
+  Mise à jour automatique (`tauri-plugin-updater`, `check_for_update()` dans `main.rs`) : Windows et
+  AppImage seulement (pas le `.deb`), avec accord de l'utilisateur ; `latest.json` signé joint à la
+  release par le workflow (secrets `TAURI_SIGNING_PRIVATE_KEY[_PASSWORD]`, clé publique dans
+  `tauri.conf.json`) ; dépôt public requis (endpoint `releases/latest/download/`). Clé privée perdue =
+  plus aucune mise à jour possible des apps installées
 - `symfony/ai-bundle` + `symfony/ai-anthropic-platform` **0.14** (pré-1.0 : vérifier l'API dans `vendor/`)
 - Twig + AssetMapper (pas de build JS) + **Stimulus** (`symfony/stimulus-bundle` 3.6) + **Turbo**
   (`symfony/ux-turbo` 2.36, Turbo 8 : navigation et formulaires sans rechargement). Tout comportement
