@@ -20,6 +20,17 @@ final readonly class WeekReview
     ) {
     }
 
+    public function sessionOn(int $weekday): ?SessionReview
+    {
+        foreach ($this->sessions as $review) {
+            if ($weekday === (int) $review->date->format('N')) {
+                return $review;
+            }
+        }
+
+        return null;
+    }
+
     public function doneKm(): float
     {
         return array_sum(array_map(static fn (SessionReview $review): float => $review->doneKm(), $this->sessions))

@@ -371,37 +371,103 @@ final class WebDashboardTest extends WebTestCase
 
         $this->client->submit($crawler->selectButton('Enregistrer')->form([
             'plan_settings[planSessionsPerWeek]' => '4',
-            'plan_settings[clubWeekday]' => '3',
-            'plan_settings[clubTime]' => '18:40',
         ]));
         self::assertResponseRedirects('/programme');
         $crawler = $this->client->followRedirect();
         self::assertSelectorTextContains('.alert-success', 'Réglages du programme enregistrés');
         self::assertSelectorExists('#plan_settings_planSessionsPerWeek option[value="4"][selected]');
-        self::assertSelectorTextContains('details:nth-of-type(2) table', 'Séance club');
-        self::assertSelectorTextContains('details:nth-of-type(2) table', 'À 18:40');
-        self::assertSelectorTextContains('details:nth-of-type(2) table', 'mer.');
+        $week = $crawler->filter('details.plan-week')->eq(1);
+        self::assertCount(4, $week->filter('tbody tr:not(.plan-rest)'));
+        self::assertCount(7, $week->filter('tbody tr[data-day]'));
+        self::assertStringContainsString('Sortie longue', $week->filter('tr[data-day="7"]')->text());
+        self::assertSelectorExists('details:nth-of-type(2) tr[data-day="7"] td[draggable="true"]');
 
-        // Semaine 2 sans club et avec 3 sorties.
-        $form = $crawler->filter('details')->eq(1)->selectButton('Ajuster la semaine')->form();
-        $club = $form['club'];
-        self::assertInstanceOf(ChoiceFormField::class, $club);
-        $club->untick();
+        // Sortie longue du dimanche échangée avec le samedi : retour à la même adresse (rafraîchie par Turbo).
+        $form = $week->selectButton('Échanger')->form();
+        $from = $form['from'];
+        $to = $form['to'];
+        self::assertInstanceOf(ChoiceFormField::class, $from);
+        self::assertInstanceOf(ChoiceFormField::class, $to);
+        $from->select('7');
+        $to->select('6');
+        $this->client->submit($form);
+        self::assertResponseRedirects('/programme');
+        $crawler = $this->client->followRedirect();
+        $week = $crawler->filter('details.plan-week')->eq(1);
+        self::assertStringContainsString('ajustée', $week->filter('summary')->text());
+        self::assertStringContainsString('Sortie longue', $week->filter('tr[data-day="6"]')->text());
+        self::assertStringContainsString('Repos', $week->filter('tr[data-day="7"]')->text());
+
+        // Contenu donné par le club : la séance réécrite suit son jour.
+        $form = $week->filter('tr[data-day="6"] .session-edit-form')->form([
+            'type' => 'hills',
+            'description' => 'Club : 10 × 200 m en côte',
+            'km' => '9,5',
+        ]);
+        $this->client->submit($form);
+        self::assertResponseRedirects('/programme');
+        $crawler = $this->client->followRedirect();
+        $row = $crawler->filter('details.plan-week')->eq(1)->filter('tr[data-day="6"]');
+        self::assertStringContainsString('Côtes', $row->text());
+        self::assertStringContainsString('modifiée', $row->text());
+        self::assertStringContainsString('Club : 10 × 200 m en côte', $row->text());
+        self::assertStringContainsString('9,5 km', $row->text());
+
+        $this->client->submit($row->selectButton('Revenir à la séance prévue')->form());
+        $crawler = $this->client->followRedirect();
+        $week = $crawler->filter('details.plan-week')->eq(1);
+        self::assertStringContainsString('Sortie longue', $week->filter('tr[data-day="6"]')->text());
+        self::assertStringNotContainsString('modifiée', $week->filter('tr[data-day="6"]')->text());
+
+        // Semaine 2 avec 3 sorties : l'échange de jours est conservé.
+        $form = $week->selectButton('Ajuster la semaine')->form();
         $sessions = $form['sessions'];
         self::assertInstanceOf(ChoiceFormField::class, $sessions);
         $sessions->select('3');
         $this->client->submit($form);
         self::assertResponseRedirects();
         $crawler = $this->client->followRedirect();
-        $week = $crawler->filter('details')->eq(1);
-        self::assertStringContainsString('ajustée', $week->filter('summary')->text());
-        self::assertStringNotContainsString('Séance club', $week->filter('table')->text());
-        self::assertCount(3, $week->filter('tbody tr'));
+        $week = $crawler->filter('details.plan-week')->eq(1);
+        self::assertCount(3, $week->filter('tbody tr:not(.plan-rest)'));
+        self::assertStringContainsString('Sortie longue', $week->filter('tr[data-day="6"]')->text());
 
         $this->client->submit($week->selectButton('Revenir au réglage général')->form());
         $crawler = $this->client->followRedirect();
-        self::assertStringContainsString('Séance club', $crawler->filter('details')->eq(1)->filter('table')->text());
-        self::assertCount(4, $crawler->filter('details')->eq(1)->filter('tbody tr'));
+        $week = $crawler->filter('details.plan-week')->eq(1);
+        self::assertCount(4, $week->filter('tbody tr:not(.plan-rest)'));
+        self::assertStringContainsString('Sortie longue', $week->filter('tr[data-day="7"]')->text());
+        self::assertStringNotContainsString('ajustée', $week->filter('summary')->text());
+    }
+
+    public function testOnlyUpcomingDaysCanBeSwapped(): void
+    {
+        $this->uploadExport();
+        $crawler = $this->client->request('GET', '/objectif');
+        $this->client->submit($crawler->selectButton('Calculer')->form([
+            'goal[distance]' => '10k',
+            'goal[time]' => '45:00',
+            'goal[date]' => (new \DateTimeImmutable('+10 weeks'))->format('Y-m-d'),
+        ]));
+        $crawler = $this->client->request('GET', '/programme');
+
+        // Semaine en cours : seuls aujourd'hui et les jours suivants se glissent.
+        $today = (int) (new \DateTimeImmutable('today'))->format('N');
+        $current = $crawler->filter('details.plan-week')->eq(0);
+        foreach ($current->filter('tr[draggable="true"]') as $row) {
+            self::assertInstanceOf(\DOMElement::class, $row);
+            self::assertGreaterThanOrEqual($today, (int) $row->getAttribute('data-day'));
+        }
+
+        $form = $current->filter('form.plan-week-form')->form();
+        $url = $form->getUri();
+        $token = $form->getValues()['_token'];
+        foreach ([['3', '3'], ['0', '7'], ['7', '8']] as [$from, $to]) {
+            $this->client->request('POST', $url, ['_token' => $token, 'action' => 'swap', 'from' => $from, 'to' => $to]);
+            self::assertResponseRedirects('/programme');
+        }
+        $this->client->followRedirect();
+        self::assertSelectorTextContains('.alert-error', 'Seuls deux jours différents, à venir, peuvent être échangés.');
+        self::assertSame(0, static::getContainer()->get(TrainingWeekOverrideRepository::class)->count([]));
     }
 
     public function testWeekAdjustmentRequiresAValidToken(): void

@@ -1,0 +1,10 @@
+{# Ligne d'un jour de la semaine : cible de dépôt (séance ou repos) si le jour peut changer. #}
+{% macro day_attributes(day, movable) -%}
+    data-day="{{ day }}"
+    {%- if movable %} data-plan-week-target="day" data-action="dragover->plan-week#over dragleave->plan-week#leave drop->plan-week#drop"{% endif %}
+{%- endmacro %}
+
+{# Cellule « Jour » d'une séance déplaçable : poignée du glisser-déposer. #}
+{% macro handle_attributes(movable) -%}
+    {%- if movable %}class="plan-drag-handle" draggable="true" title="Glisser sur un autre jour pour échanger" data-action="dragstart->plan-week#pick dragend->plan-week#release"{% endif %}
+{%- endmacro %}

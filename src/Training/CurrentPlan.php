@@ -35,10 +35,26 @@ final readonly class CurrentPlan
         }
 
         $adjustments = array_map(
-            static fn (TrainingWeekOverride $override): WeekAdjustment => new WeekAdjustment($override->club, $override->sessions),
+            static fn (TrainingWeekOverride $override): WeekAdjustment => new WeekAdjustment($override->sessions, $override->days ?? [], self::edits($override)),
             $this->overrides->findSinceIndexedByWeek($now->setTime(0, 0)->modify('monday this week')),
         );
 
-        return $this->builder->build($goal, $this->analyzer->analyze($now), new PlanOptions($profile->planSessionsPerWeek, $profile->clubWeekday, $profile->clubTime, $adjustments), $now);
+        return $this->builder->build($goal, $this->analyzer->analyze($now), new PlanOptions($profile->planSessionsPerWeek, $adjustments), $now);
+    }
+
+    /**
+     * @return array<int, SessionEdit>
+     */
+    private static function edits(TrainingWeekOverride $override): array
+    {
+        $edits = [];
+        foreach ($override->edits ?? [] as $day => $edit) {
+            $type = SessionType::tryFrom($edit['type']);
+            if (null !== $type) {
+                $edits[$day] = new SessionEdit($type, $edit['description'], $edit['km']);
+            }
+        }
+
+        return $edits;
     }
 }

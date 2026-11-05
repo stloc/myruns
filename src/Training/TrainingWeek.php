@@ -8,7 +8,6 @@ final readonly class TrainingWeek
 {
     /**
      * @param list<TrainingSession> $sessions        dans l'ordre des jours
-     * @param bool                  $club            séance club prévue cette semaine
      * @param bool                  $adjusted        la semaine s'écarte des réglages généraux
      * @param int                   $plannedSessions sorties demandées pour la semaine (la semaine de l'objectif peut en compter moins)
      */
@@ -18,7 +17,6 @@ final readonly class TrainingWeek
         public Phase $phase,
         public bool $recovery,
         public array $sessions,
-        public bool $club = false,
         public bool $adjusted = false,
         public int $plannedSessions = 0,
     ) {
@@ -39,6 +37,17 @@ final readonly class TrainingWeek
         $day = $date->setTime(0, 0);
 
         return $day >= $this->monday && $day <= $this->sunday();
+    }
+
+    public function sessionOn(int $weekday): ?TrainingSession
+    {
+        foreach ($this->sessions as $session) {
+            if ($weekday === $session->weekday) {
+                return $session;
+            }
+        }
+
+        return null;
     }
 
     public function dateOf(TrainingSession $session): ?\DateTimeImmutable

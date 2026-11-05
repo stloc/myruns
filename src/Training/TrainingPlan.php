@@ -18,8 +18,6 @@ final readonly class TrainingPlan
         public int $sessionsPerWeek,
         public array $weeks,
         public array $notes,
-        public ?int $clubWeekday = null,
-        public ?string $clubTime = null,
     ) {
     }
 

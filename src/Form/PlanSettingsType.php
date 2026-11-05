@@ -8,7 +8,6 @@ use App\Entity\AthleteProfile;
 use App\Training\TrainingPlanBuilder;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
-use Symfony\Component\Form\Extension\Core\Type\TimeType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
@@ -31,20 +30,7 @@ final class PlanSettingsType extends AbstractType
                 'required' => false,
                 'placeholder' => \sprintf('Automatique (%d)', $default),
                 'choices' => array_combine(array_map('strval', $sessions), $sessions),
-                'help' => 'Séance club comprise. Automatique : selon vos 4 dernières semaines.',
-            ])
-            ->add('clubWeekday', ChoiceType::class, [
-                'label' => 'Séance club',
-                'required' => false,
-                'placeholder' => 'Pas de séance club',
-                'choices' => array_flip(TrainingPlanBuilder::WEEKDAYS),
-            ])
-            ->add('clubTime', TimeType::class, [
-                'label' => 'Heure',
-                'required' => false,
-                'widget' => 'single_text',
-                'input' => 'string',
-                'input_format' => 'H:i',
+                'help' => 'Automatique : selon vos 4 dernières semaines.',
             ]);
     }
 

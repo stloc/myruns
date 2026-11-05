@@ -1,4 +1,7 @@
+{% import 'plan/_macros.html.twig' as plan %}
 {% set weekdays = ['lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.', 'dim.'] %}
+{# movable : jours (1-7) qui peuvent changer de séance ; absent, la semaine est en lecture seule (sans les jours de repos). #}
+{% set movable = movable ?? null %}
 {% if review.advice %}<p class="alert alert-warning">{{ review.advice }}</p>{% endif %}
 <div class="table-scroll">
     <table class="data-table plan-review-table">
@@ -13,13 +16,20 @@
             </tr>
         </thead>
         <tbody>
-            {% for session_review in review.sessions %}
+            {% for weekday in 1..7 %}
+                {% set session_review = review.sessionOn(weekday) %}
+                {% if session_review %}
                 {% set session = session_review.session %}
                 {% set day = session_review.date %}
-                <tr>
-                    <td>{{ weekdays[day|date('N') - 1] }} {{ day|date('d/m') }}</td>
-                    <td>{{ session.type.label }}</td>
-                    <td>{{ session.description }}</td>
+                <tr {{ plan.day_attributes(weekday, weekday in movable) }}>
+                    <td {{ plan.handle_attributes(weekday in movable) }}>{{ weekdays[day|date('N') - 1] }} {{ day|date('d/m') }}</td>
+                    <td>{{ session.type.label }}{% if session.edited %} <span class="badge">modifiée</span>{% endif %}</td>
+                    <td>
+                        {{ session.description }}
+                        {% if weekday in movable %}
+                            {{ include('plan/_session_edit.html.twig', {week_id: week_id, weekday: weekday, session: session, session_types: session_types, token: token}, with_context = false) }}
+                        {% endif %}
+                    </td>
                     <td class="num">{{ session.distanceKm|number_format(1, ',') }} km</td>
                     <td class="num">
                         {% for run in session_review.activities %}
@@ -31,6 +41,13 @@
                     </td>
                     <td class="plan-review-outcome">{{ include('plan/_session_outcome.html.twig', {review: session_review}, with_context = false) }}</td>
                 </tr>
+                {% elseif movable is not null %}
+                {% set day = review.week.monday.modify('+' ~ (weekday - 1) ~ ' days') %}
+                <tr class="plan-rest" {{ plan.day_attributes(weekday, weekday in movable) }}>
+                    <td>{{ weekdays[weekday - 1] }} {{ day|date('d/m') }}</td>
+                    <td colspan="5" class="muted">Repos</td>
+                </tr>
+                {% endif %}
             {% endfor %}
         </tbody>
     </table>

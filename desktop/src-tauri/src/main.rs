@@ -29,6 +29,8 @@ fn main() {
                 .title("MyRuns")
                 .inner_size(1280.0, 860.0)
                 .min_inner_size(800.0, 600.0)
+                // Glisser-déposer HTML5 laissé à la page (séances du programme), sinon intercepté sous Windows.
+                .disable_drag_drop_handler()
                 .on_navigation(|url| {
                     // Pages de l'app dans la fenêtre, liens externes dans le navigateur par défaut.
                     if is_internal(url) {

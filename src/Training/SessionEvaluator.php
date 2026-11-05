@@ -33,7 +33,7 @@ final class SessionEvaluator
     public const QUALITY_MIN_SPLIT_METERS = 200.0;
 
     private const EASY_TYPES = [SessionType::Easy, SessionType::Long, SessionType::Strides];
-    /** Séances dont l'allure se vérifie sur les tours (côtes et club : contenu trop variable). */
+    /** Séances dont l'allure se vérifie sur les tours (côtes : contenu trop variable). */
     private const PACED_QUALITY_TYPES = [SessionType::Threshold, SessionType::Interval, SessionType::GoalPace];
 
     /**

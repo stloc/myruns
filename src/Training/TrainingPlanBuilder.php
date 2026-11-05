@@ -18,7 +18,6 @@ final class TrainingPlanBuilder
 {
     public const MIN_SESSIONS = 2;
     public const MAX_SESSIONS = 6;
-    public const WEEKDAYS = [1 => 'Lundi', 2 => 'Mardi', 3 => 'Mercredi', 4 => 'Jeudi', 5 => 'Vendredi', 6 => 'Samedi', 7 => 'Dimanche'];
 
     private const WEEKLY_INCREASE = 1.10;
     private const RECOVERY_EVERY = 4;
@@ -29,10 +28,6 @@ final class TrainingPlanBuilder
     private const MIN_EASY_KM = 4.0;
     /** Échauffement (2 km) et retour au calme (2 km) des séances de qualité. */
     private const WARMUP_KM = 4.0;
-    /** Séance club : ≈ 20 min d'endurance fondamentale, puis ≈ 5 km de fractionné, récupérations et retour au calme. */
-    private const CLUB_WARMUP_SECONDS = 1200;
-    private const CLUB_WORK_KM = 5.0;
-    private const CLUB_INTENSITY_RATIO = 0.8;
     private const LONG_RUN_STEP_KM = 1.5;
     private const LONG_RUN_SHARE = 0.5;
     private const LONG_RUN_TOLERANCE = 0.8;
@@ -61,7 +56,6 @@ final class TrainingPlanBuilder
         }
 
         $sessions = self::clampSessions($options->sessionsPerWeek ?? $this->defaultSessionsPerWeek($fitness));
-        $clubDay = null !== $options->clubWeekday && isset(self::WEEKDAYS[$options->clubWeekday]) ? $options->clubWeekday : null;
         $distanceKm = $goal->distanceMeters / 1000;
         $notes = [];
 
@@ -92,8 +86,9 @@ final class TrainingPlanBuilder
             $monday = $firstMonday->modify(\sprintf('+%d weeks', $i));
             $adjustment = $options->adjustmentFor($monday);
             $weekSessions = self::clampSessions($adjustment->sessions ?? $sessions);
-            $club = null !== $clubDay && ($adjustment->club ?? true);
-            $adjusted = $weekSessions !== $sessions || (null !== $clubDay && !$club);
+            $days = $adjustment->days ?? [];
+            $edits = $adjustment->edits ?? [];
+            $adjusted = $weekSessions !== $sessions || [] !== $days || [] !== $edits;
             // Moins de sorties que prévu : le volume baisse d'autant ; davantage : il se répartit.
             $share = min(1.0, $weekSessions / $sessions);
 
@@ -101,12 +96,11 @@ final class TrainingPlanBuilder
                 $ratio = self::TAPER_RATIOS[$count - 1 - $i] ?? self::TAPER_RATIOS[2];
                 if ($i === $count - 1) {
                     $raceDay = (int) $goalDay->format('N');
-                    $club = $club && $clubDay <= $raceDay - 2;
-                    $list = $this->raceWeek($goal, $paces, $weekSessions, $raceDay, $club ? $clubDay : null, $options->clubTime);
+                    $list = $this->raceWeek($goal, $paces, $weekSessions, $raceDay);
                 } else {
-                    $list = $this->week($phase, false, 0, $weekSessions, $share * $level * $ratio, min($longLevel * ($ratio + 0.1), $longTarget), $paces, $distanceKm, $club ? $clubDay : null, $options->clubTime);
+                    $list = $this->week($phase, false, 0, $weekSessions, $share * $level * $ratio, min($longLevel * ($ratio + 0.1), $longTarget), $paces, $distanceKm);
                 }
-                $weeks[] = new TrainingWeek($i + 1, $monday, $phase, false, $list, $club, $adjusted, $weekSessions);
+                $weeks[] = new TrainingWeek($i + 1, $monday, $phase, false, self::moveDays(self::applyEdits($list, $edits), $days), $adjusted, $weekSessions);
                 continue;
             }
 
@@ -122,8 +116,8 @@ final class TrainingPlanBuilder
                 $progress[$phase->value] = $step + 1;
             }
 
-            $list = $this->week($phase, $recovery, $step, $weekSessions, $volume, $long, $paces, $distanceKm, $club ? $clubDay : null, $options->clubTime);
-            $weeks[] = new TrainingWeek($i + 1, $monday, $phase, $recovery, $list, $club, $adjusted, $weekSessions);
+            $list = $this->week($phase, $recovery, $step, $weekSessions, $volume, $long, $paces, $distanceKm);
+            $weeks[] = new TrainingWeek($i + 1, $monday, $phase, $recovery, self::moveDays(self::applyEdits($list, $edits), $days), $adjusted, $weekSessions);
         }
 
         if ($count >= 4 && $level < $targetKm - 1) {
@@ -134,19 +128,58 @@ final class TrainingPlanBuilder
         } elseif ($distanceKm > 30 && $sessions < 4) {
             $notes[] = 'Pour un marathon, 4 séances par semaine ou plus sont conseillées.';
         }
-        if (null !== $clubDay) {
-            $notes[] = \sprintf('La séance club du %s compte comme une sortie et remplace une séance de qualité. Une semaine sans club : décochez-la dans la semaine concernée.', mb_strtolower(self::WEEKDAYS[$clubDay]));
-        }
         if ($count < 4) {
             $notes[] = 'Moins de 4 semaines avant l\'objectif : peu de progression possible, le programme vise surtout à arriver frais.';
         }
 
-        return new TrainingPlan($goal, $paces, $sessions, $weeks, $notes, $clubDay, $options->clubTime);
+        return new TrainingPlan($goal, $paces, $sessions, $weeks, $notes);
     }
 
     public static function clampSessions(int $sessions): int
     {
         return max(self::MIN_SESSIONS, min(self::MAX_SESSIONS, $sessions));
+    }
+
+    /**
+     * Séances réécrites par l'utilisateur, à leur jour prévu ; jamais l'objectif.
+     *
+     * @param list<TrainingSession>   $sessions
+     * @param array<int, SessionEdit> $edits
+     *
+     * @return list<TrainingSession>
+     */
+    private static function applyEdits(array $sessions, array $edits): array
+    {
+        return array_map(static function (TrainingSession $session) use ($edits): TrainingSession {
+            $edit = $edits[$session->weekday ?? 0] ?? null;
+
+            return null === $edit || SessionType::Race === $session->type || SessionType::Race === $edit->type
+                ? $session
+                : new TrainingSession($edit->type, $edit->description, $edit->distanceKm, $session->weekday, true);
+        }, $sessions);
+    }
+
+    /**
+     * Séances changées de jour par l'utilisateur ; jamais l'objectif, dont la date est fixée.
+     *
+     * @param list<TrainingSession> $sessions
+     * @param array<int, int>       $days     jour prévu → jour choisi
+     *
+     * @return list<TrainingSession>
+     */
+    private static function moveDays(array $sessions, array $days): array
+    {
+        $moved = [];
+        foreach ($sessions as $session) {
+            $day = $days[$session->weekday ?? 0] ?? $session->weekday;
+            if (null === $day || isset($moved[$day]) || (SessionType::Race === $session->type && $day !== $session->weekday)) {
+                return $sessions;
+            }
+            $moved[$day] = $session->on($day);
+        }
+        ksort($moved);
+
+        return array_values($moved);
     }
 
     /**
@@ -175,20 +208,9 @@ final class TrainingPlanBuilder
     /**
      * @return list<TrainingSession>
      */
-    private function week(Phase $phase, bool $recovery, int $step, int $sessions, float $volume, float $long, TrainingPaces $paces, float $distanceKm, ?int $clubDay, ?string $clubTime): array
+    private function week(Phase $phase, bool $recovery, int $step, int $sessions, float $volume, float $long, TrainingPaces $paces, float $distanceKm): array
     {
-        // Le fractionné du club entame la part d'intensité de la semaine.
-        $quality = $this->qualitySessions($phase, $recovery, $step, $sessions, null === $clubDay ? $volume : self::CLUB_INTENSITY_RATIO * $volume, $paces, $distanceKm);
-        if (null !== $clubDay) {
-            // Le club fait du fractionné ou des côtes : il prend la place de la VMA, sinon de la dernière séance
-            // de qualité ; jamais celle du travail à l'allure objectif, qu'il remplace alors un footing.
-            $slot = Phase::Development === $phase ? 0 : \count($quality) - 1;
-            if (SessionType::GoalPace === $quality[$slot]['type'] && Phase::Specific === $phase && $sessions - 1 > \count($quality)) {
-                $quality[] = $this->club($phase, $recovery, $paces, $clubTime);
-            } else {
-                $quality[$slot] = $this->club($phase, $recovery, $paces, $clubTime);
-            }
-        }
+        $quality = $this->qualitySessions($phase, $recovery, $step, $sessions, $volume, $paces, $distanceKm);
 
         $wantedLong = min($long, self::LONG_RUN_SHARE * $volume);
         while (true) {
@@ -196,8 +218,8 @@ final class TrainingPlanBuilder
             $fixedKm = array_sum(array_map(static fn (array $q): float => $q['km'] ?? 0.0, $quality));
             $sizedLikeEasy = $easyCount + \count(array_filter($quality, static fn (array $q): bool => null === $q['km']));
             $room = $volume - $fixedKm - self::MIN_EASY_KM * $sizedLikeEasy;
-            // Semaine trop chargée : une 2ᵉ séance de qualité (hors club et allure objectif) devient un footing avant de raccourcir la sortie longue.
-            $removable = array_keys(array_filter($quality, static fn (array $q): bool => !\in_array($q['type'], [SessionType::Club, SessionType::GoalPace], true) && null !== $q['km']));
+            // Semaine trop chargée : une 2ᵉ séance de qualité (hors allure objectif) devient un footing avant de raccourcir la sortie longue.
+            $removable = array_keys(array_filter($quality, static fn (array $q): bool => SessionType::GoalPace !== $q['type'] && null !== $q['km']));
             if ($room >= self::LONG_RUN_TOLERANCE * $wantedLong || \count($quality) < 2 || [] === $removable) {
                 break;
             }
@@ -212,7 +234,7 @@ final class TrainingPlanBuilder
         $planned = array_map(static fn (array $q): TrainingSession => new TrainingSession($q['type'], $q['text'], $q['km'] ?? $easyKm), $quality);
         $longRun = new TrainingSession(SessionType::Long, \sprintf('Sortie longue à %s, régulière, sans chercher la vitesse.', Units::formatPace($paces->easySlow)), $long);
 
-        return $this->schedule($planned, array_fill(0, max(0, $easyCount), $easy), $longRun, $clubDay);
+        return $this->schedule($planned, array_fill(0, max(0, $easyCount), $easy), $longRun);
     }
 
     /**
@@ -240,40 +262,16 @@ final class TrainingPlanBuilder
     }
 
     /**
-     * @return array{type: SessionType, text: string, km: float}
-     */
-    private function club(Phase $phase, bool $recovery, TrainingPaces $paces, ?string $time, bool $raceWeek = false): array
-    {
-        $advice = match (true) {
-            $raceWeek => 'semaine de l\'objectif : faire l\'échauffement et quelques accélérations, pas de fractionné',
-            $recovery => 'semaine allégée : faire l\'échauffement et la moitié des répétitions seulement',
-            Phase::Taper === $phase => 'affûtage : moitié des répétitions, sans finir à bloc',
-            Phase::Base === $phase => 'idéal en côtes ou en fractions courtes, sans finir à bloc',
-            Phase::Specific === $phase => \sprintf('si le choix est libre, viser l\'allure objectif %s sur les fractions longues', Units::formatPace($paces->goal)),
-            default => \sprintf('fractions de 2 à 4 min vers %s, ou côtes', Units::formatPace($paces->interval)),
-        };
-
-        return [
-            'type' => SessionType::Club,
-            'text' => \sprintf('%s≈ 20 min d\'endurance fondamentale à %s puis fractionné ou côtes selon l\'entraîneur. Conseil : %s.',
-                null === $time || '' === $time ? '' : 'À '.$time.' : ', $this->easyRange($paces), $advice),
-            'km' => self::round(self::CLUB_WARMUP_SECONDS / $paces->easy() + ($raceWeek ? 2.0 : self::CLUB_WORK_KM)),
-        ];
-    }
-
-    /**
      * @return list<TrainingSession>
      */
-    private function raceWeek(Goal $goal, TrainingPaces $paces, int $sessions, int $raceDay, ?int $clubDay, ?string $clubTime): array
+    private function raceWeek(Goal $goal, TrainingPaces $paces, int $sessions, int $raceDay): array
     {
         $thirtyMinutesKm = self::round(30 * 60 / $paces->easy());
         $placed = [$raceDay => new TrainingSession(SessionType::Race, \sprintf('Objectif : %s. Partir à %s, sans s\'emballer sur le premier kilomètre.', $goal->describe(), Units::formatPace($paces->goal)), self::round($goal->distanceMeters / 1000), $raceDay)];
 
-        $reminderDay = $clubDay ?? $raceDay - 3;
+        $reminderDay = $raceDay - 3;
         if ($sessions >= 2 && $reminderDay >= 1) {
-            $placed[$reminderDay] = null !== $clubDay
-                ? $this->toSession($this->club(Phase::Taper, false, $paces, $clubTime, true), $reminderDay)
-                : new TrainingSession(SessionType::Strides, \sprintf('Footing de 30 min dont 3 × 1 min à l\'allure objectif (%s).', Units::formatPace($paces->goal)), $thirtyMinutesKm, $reminderDay);
+            $placed[$reminderDay] = new TrainingSession(SessionType::Strides, \sprintf('Footing de 30 min dont 3 × 1 min à l\'allure objectif (%s).', Units::formatPace($paces->goal)), $thirtyMinutesKm, $reminderDay);
         }
         $easy = new TrainingSession(SessionType::Easy, 'Footing court et très facile (30 min).', $thirtyMinutesKm);
         foreach ([$raceDay - 2, $raceDay - 5, $raceDay - 1, $raceDay - 4, $raceDay - 6] as $day) {
@@ -290,28 +288,20 @@ final class TrainingPlanBuilder
     }
 
     /**
-     * Répartit les séances sur la semaine : sortie longue le dimanche (samedi si le club a lieu le dimanche),
-     * club à son jour, puis chaque séance de qualité et chaque footing le plus loin possible des séances déjà placées.
+     * Répartit les séances sur la semaine : sortie longue le dimanche, puis chaque séance de qualité
+     * et chaque footing le plus loin possible des séances déjà placées.
      *
      * @param list<TrainingSession> $quality
      * @param list<TrainingSession> $easy
      *
      * @return list<TrainingSession>
      */
-    private function schedule(array $quality, array $easy, TrainingSession $long, ?int $clubDay): array
+    private function schedule(array $quality, array $easy, TrainingSession $long): array
     {
-        $longDay = 7 === $clubDay ? 6 : 7;
-        $placed = [$longDay => $long->on($longDay)];
+        $placed = [7 => $long->on(7)];
         $others = [];
         foreach ($quality as $session) {
-            if (SessionType::Club === $session->type && null !== $clubDay) {
-                $placed[$clubDay] = $session->on($clubDay);
-            }
-        }
-        foreach ($quality as $session) {
-            if (SessionType::Club === $session->type) {
-                continue;
-            } elseif ($session->type->isQuality() || SessionType::Hills === $session->type) {
+            if ($session->type->isQuality() || SessionType::Hills === $session->type) {
                 $day = self::farthestDay(array_keys($placed), self::QUALITY_DAYS);
                 $placed[$day] = $session->on($day);
             } else {
@@ -347,14 +337,6 @@ final class TrainingPlanBuilder
         }
 
         return $best;
-    }
-
-    /**
-     * @param array{type: SessionType, text: string, km: float} $session
-     */
-    private function toSession(array $session, int $weekday): TrainingSession
-    {
-        return new TrainingSession($session['type'], $session['text'], $session['km'], $weekday);
     }
 
     /**

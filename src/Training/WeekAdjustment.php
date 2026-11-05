@@ -9,9 +9,14 @@ namespace App\Training;
  */
 final readonly class WeekAdjustment
 {
+    /**
+     * @param array<int, int>         $days  jour prévu (1 = lundi … 7) → jour choisi, seulement pour les jours déplacés
+     * @param array<int, SessionEdit> $edits séances réécrites, par jour prévu
+     */
     public function __construct(
-        public ?bool $club = null,
         public ?int $sessions = null,
+        public array $days = [],
+        public array $edits = [],
     ) {
     }
 }

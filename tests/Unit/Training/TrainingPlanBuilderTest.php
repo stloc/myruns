@@ -8,6 +8,7 @@ use App\Prediction\FitnessSnapshot;
 use App\Prediction\Goal;
 use App\Training\Phase;
 use App\Training\PlanOptions;
+use App\Training\SessionEdit;
 use App\Training\SessionType;
 use App\Training\TrainingPaces;
 use App\Training\TrainingPlan;
@@ -155,57 +156,28 @@ final class TrainingPlanBuilderTest extends TestCase
         self::assertSame('2026-11-17', $week->dateOf($week->sessions[1])?->format('Y-m-d'));
     }
 
-    public function testClubSessionTakesItsDayAndReplacesAQualitySession(): void
+    public function testAWeekCanSwapDaysAndChangeItsSessions(): void
     {
-        $plan = $this->plan(10000, 45 * 60, '2027-01-17', 4, clubDay: 3);
-
-        foreach (\array_slice($plan->weeks, 0, -1) as $week) {
-            self::assertTrue($week->club);
-            self::assertCount(4, $week->sessions, 'semaine '.$week->number);
-            $club = array_values(array_filter($week->sessions, static fn ($s): bool => SessionType::Club === $s->type));
-            self::assertCount(1, $club, 'semaine '.$week->number);
-            self::assertSame(3, $club[0]->weekday);
-            self::assertStringContainsString('À 18:40', $club[0]->description);
-            $hard = array_filter($week->sessions, static fn ($s): bool => $s->type->isQuality());
-            self::assertLessThanOrEqual(2, \count($hard), 'semaine '.$week->number);
-            // Jamais de séance intense la veille ou le lendemain du club.
-            foreach ($hard as $session) {
-                self::assertNotContains($session->weekday, [2, 4], 'semaine '.$week->number);
-            }
-        }
-
-        // Le club n'évince pas le travail à l'allure objectif.
-        $specific = array_filter($plan->weeks, static fn (TrainingWeek $w): bool => Phase::Specific === $w->phase && !$w->recovery);
-        foreach ($specific as $week) {
-            self::assertContains(SessionType::GoalPace, array_map(static fn ($s): SessionType => $s->type, $week->sessions), 'semaine '.$week->number);
-        }
-    }
-
-    public function testClubOnSundayMovesTheLongRunToSaturday(): void
-    {
-        $week = $this->plan(10000, 45 * 60, '2027-01-17', 3, clubDay: 7)->weeks[2];
-
-        self::assertSame(SessionType::Long, $week->sessions[\count($week->sessions) - 2]->type);
-        self::assertSame(6, $week->sessions[\count($week->sessions) - 2]->weekday);
-    }
-
-    public function testAWeekCanSkipTheClubAndChangeItsSessions(): void
-    {
-        $reference = $this->plan(10000, 45 * 60, '2027-01-17', 4, clubDay: 3);
-        $plan = $this->plan(10000, 45 * 60, '2027-01-17', 4, clubDay: 3, adjustments: [
-            '2026-11-16' => new WeekAdjustment(club: false),
+        $reference = $this->plan(10000, 45 * 60, '2027-01-17', 4);
+        $plan = $this->plan(10000, 45 * 60, '2027-01-17', 4, [
+            // Séance du mardi au mercredi (jour de repos), sortie longue au samedi.
+            '2026-11-16' => new WeekAdjustment(days: [2 => 3, 3 => 2, 6 => 7, 7 => 6]),
             '2026-11-23' => new WeekAdjustment(sessions: 2),
         ]);
 
-        $noClub = $plan->weeks[5];
-        self::assertFalse($noClub->club);
-        self::assertTrue($noClub->adjusted);
-        self::assertNotContains(SessionType::Club, array_map(static fn ($s): SessionType => $s->type, $noClub->sessions));
-        self::assertCount(4, $noClub->sessions);
+        $moved = $plan->weeks[5];
+        $before = $reference->weeks[5];
+        self::assertTrue($moved->adjusted);
+        self::assertSame([1, 3, 4, 6], array_map(static fn ($s): ?int => $s->weekday, $moved->sessions));
+        self::assertSame($before->sessions[1]->description, $moved->sessions[1]->description);
+        self::assertSame(SessionType::Long, $moved->sessionOn(6)?->type);
+        self::assertNull($moved->sessionOn(2));
+        self::assertSame($before->volumeKm(), $moved->volumeKm());
 
         $twoRuns = $plan->weeks[6];
         self::assertSame(2, $twoRuns->plannedSessions);
-        self::assertSame([SessionType::Club, SessionType::Long], array_map(static fn ($s): SessionType => $s->type, $twoRuns->sessions));
+        self::assertCount(2, $twoRuns->sessions);
+        self::assertSame(SessionType::Long, $twoRuns->sessions[1]->type);
         self::assertLessThan($reference->weeks[6]->volumeKm(), $twoRuns->volumeKm());
 
         // Les autres semaines ne bougent pas.
@@ -213,22 +185,41 @@ final class TrainingPlanBuilderTest extends TestCase
         self::assertFalse($plan->weeks[7]->adjusted);
     }
 
-    public function testRaceWeekPutsTheRaceOnItsDayAndEasesTheClub(): void
+    public function testAnEditedSessionReplacesThePlannedOneAndFollowsItsDay(): void
     {
-        $plan = $this->plan(10000, 45 * 60, '2027-01-17', 4, clubDay: 3);
-        $raceWeek = $plan->weeks[\count($plan->weeks) - 1];
-        $last = $raceWeek->sessions[\count($raceWeek->sessions) - 1];
+        $reference = $this->plan(10000, 45 * 60, '2027-01-17', 4);
+        $planned = $reference->weeks[5]->sessions[1]; // mardi
+        $plan = $this->plan(10000, 45 * 60, '2027-01-17', 4, [
+            '2026-11-16' => new WeekAdjustment(days: [2 => 3, 3 => 2], edits: [2 => new SessionEdit(SessionType::Hills, 'Club : 10 × 200 m en côte', 9.5)]),
+        ]);
 
+        $week = $plan->weeks[5];
+        $edited = $week->sessionOn(3);
+        self::assertNotNull($edited);
+        self::assertNotSame($planned->type, $edited->type);
+        self::assertSame(SessionType::Hills, $edited->type);
+        self::assertSame('Club : 10 × 200 m en côte', $edited->description);
+        self::assertTrue($edited->edited);
+        self::assertTrue($week->adjusted);
+        self::assertEqualsWithDelta($reference->weeks[5]->volumeKm() - $planned->distanceKm + 9.5, $week->volumeKm(), 0.01);
+        self::assertFalse($week->sessions[0]->edited);
+    }
+
+    public function testRaceWeekKeepsTheRaceOnItsDay(): void
+    {
+        $reference = $this->plan(10000, 45 * 60, '2027-01-17', 4);
+        $raceWeek = $reference->weeks[\count($reference->weeks) - 1];
+        $last = $raceWeek->sessions[\count($raceWeek->sessions) - 1];
         self::assertSame(SessionType::Race, $last->type);
         self::assertSame(7, $last->weekday);
-        $club = array_values(array_filter($raceWeek->sessions, static fn ($s): bool => SessionType::Club === $s->type));
-        self::assertStringContainsString('pas de fractionné', $club[0]->description);
 
-        // Objectif un jeudi : club du mercredi trop proche, remplacé par un footing.
-        $thursday = $this->plan(10000, 45 * 60, '2027-01-14', 4, clubDay: 3);
-        $raceWeek = $thursday->weeks[\count($thursday->weeks) - 1];
-        self::assertFalse($raceWeek->club);
-        self::assertNotContains(SessionType::Club, array_map(static fn ($s): SessionType => $s->type, $raceWeek->sessions));
+        // Un échange qui déplacerait l'objectif est ignoré : sa date est fixée.
+        $plan = $this->plan(10000, 45 * 60, '2027-01-17', 4, [$raceWeek->monday->format('Y-m-d') => new WeekAdjustment(days: [5 => 7, 7 => 5])]);
+        self::assertEquals($raceWeek->sessions, $plan->weeks[\count($plan->weeks) - 1]->sessions);
+
+        // L'objectif ne se réécrit pas non plus.
+        $plan = $this->plan(10000, 45 * 60, '2027-01-17', 4, [$raceWeek->monday->format('Y-m-d') => new WeekAdjustment(edits: [7 => new SessionEdit(SessionType::Easy, 'Footing', 5.0)])]);
+        self::assertSame(SessionType::Race, $plan->weeks[\count($plan->weeks) - 1]->sessionOn(7)?->type);
     }
 
     public function testTwoSessionsPerWeekAreAllowed(): void
@@ -250,9 +241,9 @@ final class TrainingPlanBuilderTest extends TestCase
     /**
      * @param array<string, WeekAdjustment> $adjustments
      */
-    private function plan(float $distance, int $seconds, string $date, int $sessions, ?int $clubDay = null, array $adjustments = []): TrainingPlan
+    private function plan(float $distance, int $seconds, string $date, int $sessions, array $adjustments = []): TrainingPlan
     {
-        $options = new PlanOptions($sessions, $clubDay, null === $clubDay ? null : '18:40', $adjustments);
+        $options = new PlanOptions($sessions, $adjustments);
         $plan = new TrainingPlanBuilder()->build(new Goal($distance, $seconds, new \DateTimeImmutable($date)), self::fitness(), $options, new \DateTimeImmutable(self::NOW));
         self::assertNotNull($plan);
 

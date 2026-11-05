@@ -2,7 +2,14 @@
 
 {% block title %}Programme d'entraînement{% endblock %}
 
+{% block head %}
+    {# Échange de jours : la page revient à la même adresse et Turbo la rafraîchit sur place. #}
+    <meta name="turbo-refresh-method" content="morph">
+    <meta name="turbo-refresh-scroll" content="preserve">
+{% endblock %}
+
 {% block body %}
+    {% import 'plan/_macros.html.twig' as plan_macros %}
     {% set weekdays = ['lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.', 'dim.'] %}
     <div class="page-heading">
         <h1>Programme d'entraînement</h1>
@@ -68,8 +75,6 @@
             {{ form_start(settings_form, {attr: {class: 'form plan-settings'}}) }}
                 <div class="plan-settings-fields">
                     {{ form_row(settings_form.planSessionsPerWeek) }}
-                    {{ form_row(settings_form.clubWeekday) }}
-                    {{ form_row(settings_form.clubTime) }}
                 </div>
                 <div class="form-actions">
                     <button type="submit" class="button">Enregistrer</button>
@@ -120,8 +125,9 @@
                         <li>{{ note }}</li>
                     {% endfor %}
                     <li>Une semaine allégée toutes les quatre pour assimiler le travail.</li>
-                    <li>Les jours sont indicatifs : vous pouvez les décaler, en évitant deux séances intenses d'affilée.</li>
-                    <li>Une semaine différente (club manqué, sortie en plus ou en moins) : ajustez-la dans la semaine concernée.</li>
+                    <li>Les jours sont indicatifs : glissez une séance (par son jour) sur un autre jour pour les échanger, en évitant deux séances intenses d'affilée.</li>
+                    <li>Une semaine différente (sortie en plus ou en moins) : ajustez-la dans la semaine concernée.</li>
+                    <li>Contenu connu le jour même (séance de club, fractionné imposé) : « Modifier » sous la séance, le bilan la jugera sur ce que vous avez saisi.</li>
                 </ul>
             </section>
         </div>
@@ -129,13 +135,26 @@
         {% for week in plan.weeks %}
             {% set current = week.contains(today) %}
             {% set week_id = week.monday|date('Y-m-d') %}
-            <details class="card plan-week" id="semaine-{{ week_id }}" {% if current %}open{% endif %}>
+            {% set first_week = loop.first %}
+            {% set week_token = csrf_token('plan_week_' ~ week_id) %}
+            {# Jours à venir dont la séance peut changer : jamais l'objectif ni une séance déjà courue. #}
+            {% set movable = [] %}
+            {% for weekday in 1..7 %}
+                {% set session = week.sessionOn(weekday) %}
+                {% set session_review = first_week ? review.currentWeek.sessionOn(weekday) : null %}
+                {% if week.monday.modify('+' ~ (weekday - 1) ~ ' days') >= today
+                    and (session is null or session.type.value != 'race')
+                    and (session_review is null or session_review.outcome.value == 'upcoming') %}
+                    {% set movable = movable|merge([weekday]) %}
+                {% endif %}
+            {% endfor %}
+            <details class="card plan-week" id="semaine-{{ week_id }}" {% if current %}open{% endif %}
+                     data-controller="plan-week" data-action="turbo:before-morph-attribute->plan-week#keepOpen">
                 <summary>
                     <span class="plan-week-title">Semaine {{ week.number }}</span>
                     <span class="muted">{{ week.monday|date('d/m') }} → {{ week.sunday|date('d/m') }}</span>
                     <span>{{ week.phase.label }}</span>
                     {% if week.recovery %}<span class="badge">allégée</span>{% endif %}
-                    {% if week.club %}<span class="badge">club</span>{% endif %}
                     {% if week.adjusted %}<span class="badge">ajustée</span>{% endif %}
                     {% if current %}<span class="badge">cette semaine</span>{% endif %}
                     <span class="plan-week-volume">{{ week.volumeKm|number_format(1, ',') }} km</span>
@@ -143,7 +162,7 @@
                 <p class="card-subtitle">{{ week.phase.purpose }}</p>
                 {% if loop.first %}
                     <p class="card-subtitle">Réalisé : {{ review.currentWeek.doneKm|number_format(1, ',') }} km sur {{ week.volumeKm|number_format(1, ',') }} prévus.</p>
-                    {{ include('plan/_week_review.html.twig', {review: review.currentWeek}, with_context = false) }}
+                    {{ include('plan/_week_review.html.twig', {review: review.currentWeek, movable: movable, week_id: week_id, session_types: session_types, token: week_token}, with_context = false) }}
                 {% else %}
                 <div class="table-scroll">
                     <table class="data-table">
@@ -156,21 +175,34 @@
                             </tr>
                         </thead>
                         <tbody>
-                            {% for session in week.sessions %}
-                                <tr>
-                                    {% set day = week.dateOf(session) %}
-                                    <td>{% if day %}{{ weekdays[day|date('N') - 1] }} {{ day|date('d/m') }}{% endif %}</td>
-                                    <td>{{ session.type.label }}</td>
-                                    <td>{{ session.description }}</td>
-                                    <td class="num">{{ session.distanceKm|number_format(1, ',') }} km</td>
-                                </tr>
+                            {% for weekday in 1..7 %}
+                                {% set session = week.sessionOn(weekday) %}
+                                {% set day = week.monday.modify('+' ~ (weekday - 1) ~ ' days') %}
+                                {% if session %}
+                                    <tr {{ plan_macros.day_attributes(weekday, weekday in movable) }}>
+                                        <td {{ plan_macros.handle_attributes(weekday in movable) }}>{{ weekdays[weekday - 1] }} {{ day|date('d/m') }}</td>
+                                        <td>{{ session.type.label }}{% if session.edited %} <span class="badge">modifiée</span>{% endif %}</td>
+                                        <td>
+                                            {{ session.description }}
+                                            {% if weekday in movable %}
+                                                {{ include('plan/_session_edit.html.twig', {week_id: week_id, weekday: weekday, session: session, session_types: session_types, token: week_token}, with_context = false) }}
+                                            {% endif %}
+                                        </td>
+                                        <td class="num">{{ session.distanceKm|number_format(1, ',') }} km</td>
+                                    </tr>
+                                {% else %}
+                                    <tr class="plan-rest" {{ plan_macros.day_attributes(weekday, weekday in movable) }}>
+                                        <td>{{ weekdays[weekday - 1] }} {{ day|date('d/m') }}</td>
+                                        <td colspan="3" class="muted">Repos</td>
+                                    </tr>
+                                {% endif %}
                             {% endfor %}
                         </tbody>
                     </table>
                 </div>
                 {% endif %}
                 <form method="post" action="{{ path('plan_week', {week: week_id}) }}" class="plan-week-form">
-                    <input type="hidden" name="_token" value="{{ csrf_token('plan_week_' ~ week_id) }}">
+                    <input type="hidden" name="_token" value="{{ week_token }}">
                     <label>Sorties cette semaine
                         <select name="sessions">
                             {% for choice in session_choices %}
@@ -178,11 +210,27 @@
                             {% endfor %}
                         </select>
                     </label>
-                    {% if plan.clubWeekday %}
-                        <input type="hidden" name="club_present" value="1">
-                        <label><input type="checkbox" name="club" value="1" {% if week.club %}checked{% endif %}> Je vais au club</label>
-                    {% endif %}
                     <button type="submit" class="button button-secondary">Ajuster la semaine</button>
+                    {% if movable|length > 1 %}
+                        {# Sans glisser-déposer (clavier, sans JS) : même échange, au choix des deux jours. #}
+                        <span class="plan-swap">
+                            <label>Échanger le
+                                <select name="from" data-plan-week-target="from">
+                                    {% for weekday in movable %}
+                                        <option value="{{ weekday }}">{{ weekdays[weekday - 1] }} {{ week.monday.modify('+' ~ (weekday - 1) ~ ' days')|date('d/m') }}</option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+                            <label>et le
+                                <select name="to" data-plan-week-target="to">
+                                    {% for weekday in movable %}
+                                        <option value="{{ weekday }}" {% if loop.index == 2 %}selected{% endif %}>{{ weekdays[weekday - 1] }} {{ week.monday.modify('+' ~ (weekday - 1) ~ ' days')|date('d/m') }}</option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+                            <button type="submit" name="action" value="swap" class="button button-secondary" data-plan-week-target="swap">Échanger</button>
+                        </span>
+                    {% endif %}
                     {% if week.adjusted %}
                         <button type="submit" name="action" value="reset" class="link-button">Revenir au réglage général</button>
                     {% endif %}

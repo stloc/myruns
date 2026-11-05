@@ -13,7 +13,6 @@ enum SessionType: string
     case Threshold = 'threshold';
     case Interval = 'interval';
     case GoalPace = 'goal_pace';
-    case Club = 'club';
     case Race = 'race';
 
     public function label(): string
@@ -26,13 +25,12 @@ enum SessionType: string
             self::Threshold => 'Seuil',
             self::Interval => 'VMA',
             self::GoalPace => 'Allure objectif',
-            self::Club => 'Séance club',
             self::Race => 'Jour J',
         };
     }
 
     public function isQuality(): bool
     {
-        return \in_array($this, [self::Threshold, self::Interval, self::GoalPace, self::Club, self::Race], true);
+        return \in_array($this, [self::Threshold, self::Interval, self::GoalPace, self::Race], true);
     }
 }

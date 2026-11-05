@@ -48,19 +48,10 @@ class AthleteProfile
     #[Assert\Range(min: 30, max: 200, notInRangeMessage: 'Poids entre {{ min }} et {{ max }} kg.')]
     public ?float $targetWeightKg = null;
 
-    /** Sorties par semaine du programme, séance club comprise (null : selon la régularité). */
+    /** Sorties par semaine du programme (null : selon la régularité). */
     #[ORM\Column(nullable: true)]
     #[Assert\Range(min: 2, max: 6, notInRangeMessage: 'Entre {{ min }} et {{ max }} sorties par semaine.')]
     public ?int $planSessionsPerWeek = null;
-
-    /** Jour de la séance club, 1 (lundi) à 7 (dimanche) ; null : pas de club. */
-    #[ORM\Column(nullable: true)]
-    #[Assert\Range(min: 1, max: 7)]
-    public ?int $clubWeekday = null;
-
-    /** Heure de la séance club (HH:MM), affichée dans le programme. */
-    #[ORM\Column(length: 5, nullable: true)]
-    public ?string $clubTime = null;
 
     /** Dernier objectif saisi sur /objectif, tel que tapé (sans effet sur les calculs). */
     #[ORM\Column(length: 32, nullable: true)]

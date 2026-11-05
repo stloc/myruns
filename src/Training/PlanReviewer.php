@@ -57,7 +57,7 @@ final readonly class PlanReviewer
         }
 
         return new PlanReview(
-            plan: new TrainingPlan($latest->goal, $latest->paces, $latest->sessionsPerWeek, [$plannedWeek, ...\array_slice($latest->weeks, 1)], $latest->notes, $latest->clubWeekday, $latest->clubTime),
+            plan: new TrainingPlan($latest->goal, $latest->paces, $latest->sessionsPerWeek, [$plannedWeek, ...\array_slice($latest->weeks, 1)], $latest->notes),
             currentWeek: $current,
             previousWeek: $previous,
             changes: $this->changes($planned, $latest),
