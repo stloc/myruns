@@ -16,7 +16,6 @@
                 {{ form_row(form.date) }}
                 <div class="form-actions">
                     <button type="submit" name="action" value="predict" class="button">Calculer</button>
-                    <button type="submit" name="action" value="ai" class="button button-secondary" data-loading-label="Analyse IA en cours…">Calculer + analyse IA</button>
                 </div>
             {{ form_end(form) }}
         </section>
@@ -31,7 +30,6 @@
             {% else %}
                 <h2>Comment ça marche</h2>
                 <p>Votre forme est estimée à partir de vos meilleures courses des 12 dernières semaines, puis projetée jusqu'à la date de l'objectif en tenant compte de votre régularité et de votre volume.</p>
-                <p>L'analyse IA relit ensuite votre historique comme le ferait un entraîneur et ajuste le pourcentage si besoin.</p>
             {% endif %}
         </section>
     </div>

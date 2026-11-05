@@ -304,12 +304,13 @@ final class WebDashboardTest extends WebTestCase
         $this->uploadExport();
 
         $crawler = $this->client->request('GET', '/objectif');
-        $form = $crawler->selectButton('Calculer + analyse IA')->form([
+        $form = $crawler->selectButton('Calculer')->form([
             'goal[distance]' => '10k',
             'goal[time]' => '45:00',
             'goal[date]' => (new \DateTimeImmutable('+10 weeks'))->format('Y-m-d'),
         ]);
-        $this->client->submit($form);
+        // Bouton masqué de la page : l'action reste acceptée par le contrôleur.
+        $this->client->request('POST', '/objectif', ['action' => 'ai'] + $form->getPhpValues());
 
         self::assertResponseIsSuccessful();
         self::assertAnySelectorTextContains('h2', '10 km en 45:00');

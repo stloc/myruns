@@ -35,7 +35,7 @@ final class GoalController extends AbstractController
 
             $prediction = $predictor->predict($goalRequest->toGoal());
 
-            // Le bouton « Calculer + analyse IA » envoie action=ai (bouton du template).
+            // action=ai : analyse IA (bouton masqué de la page, gardé pour y revenir).
             if (null !== $prediction && 'ai' === $request->request->getString('action')) {
                 try {
                     $analysis = $coach->analyze($prediction);
