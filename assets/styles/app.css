@@ -40,6 +40,12 @@
     --profile-cadence: #6250d6;
     --profile-altitude: #8f8e86;
     --profile-altitude-fill: rgba(143, 142, 134, 0.25);
+    /* Zones cardiaques : de la récupération (1, bleu) à l'effort maximal (5, rouge). */
+    --zone-1: #3b82f6;
+    --zone-2: #16a34a;
+    --zone-3: #ca8a04;
+    --zone-4: #ea580c;
+    --zone-5: #dc2626;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -82,6 +88,11 @@
         --profile-cadence: #9085e9;
         --profile-altitude: #8a8983;
         --profile-altitude-fill: rgba(138, 137, 131, 0.25);
+        --zone-1: #60a5fa;
+        --zone-2: #22c55e;
+        --zone-3: #eab308;
+        --zone-4: #f97316;
+        --zone-5: #ef4444;
     }
 }
 
@@ -416,3 +427,17 @@ code { font-size: 0.9em; overflow-wrap: anywhere; }
 .profile-cadence { --swatch: var(--profile-cadence); }
 .profile-altitude { --swatch: var(--profile-altitude); }
 .profile-average { font-size: 0.85rem; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+/* Analyse de l'effort */
+.stat-list { margin: 0.25rem 0 0; font-variant-numeric: tabular-nums; }
+.stat-list div { display: flex; justify-content: space-between; gap: 1rem; }
+.stat-list dt { color: var(--text-secondary); font-size: 0.85rem; }
+.stat-list dd { margin: 0; font-weight: 650; }
+.zone-list { display: grid; grid-template-columns: minmax(0, max-content) minmax(3rem, 1fr) auto auto; align-items: center; gap: 0.5rem 1rem; margin: 0 0 0.75rem; padding: 0; list-style: none; font-variant-numeric: tabular-nums; }
+.zone-list li { display: contents; }
+.zone-name strong { color: var(--swatch); }
+.zone-bar { height: 0.5rem; border-radius: 999px; background: linear-gradient(to right, var(--swatch) var(--share), var(--meter-track) var(--share)); }
+.zone-1 { --swatch: var(--zone-1); }
+.zone-2 { --swatch: var(--zone-2); }
+.zone-3 { --swatch: var(--zone-3); }
+.zone-4 { --swatch: var(--zone-4); }
+.zone-5 { --swatch: var(--zone-5); }

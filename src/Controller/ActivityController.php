@@ -8,12 +8,15 @@ use App\Chart\ActivityProfile;
 use App\Chart\RouteMap;
 use App\Chart\SplitTable;
 use App\Chart\StartMap;
+use App\Effort\EffortSummary;
 use App\Entity\Activity;
 use App\Enum\ActivitySort;
 use App\Enum\SplitKind;
 use App\Enum\Sport;
+use App\Prediction\HeartRateReserve;
 use App\Repository\ActivityRepository;
 use App\Repository\ActivitySearch;
+use App\Repository\AthleteProfileRepository;
 use App\Route\SameRouteFinder;
 use App\Training\PlanReviewer;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -55,15 +58,18 @@ final class ActivityController extends AbstractController
     }
 
     #[Route('/activites/{id}', name: 'activity_show', methods: ['GET'])]
-    public function show(Activity $activity, PlanReviewer $reviewer, SameRouteFinder $sameRoute): Response
+    public function show(Activity $activity, PlanReviewer $reviewer, SameRouteFinder $sameRoute, AthleteProfileRepository $profiles): Response
     {
         $laps = $activity->splitsOf(SplitKind::Lap);
+        // Zones cardiaques seulement avec une FC max dans le profil.
+        $effort = EffortSummary::fromActivity($activity, HeartRateReserve::of($profiles->current()));
 
         return $this->render('activity/show.html.twig', [
             'activity' => $activity,
             'route_map' => RouteMap::fromPoints($activity->routePoints(), $activity->sport->isRunning()),
             'profile' => ActivityProfile::fromActivity($activity),
-            'kilometers' => SplitTable::fromSplits($activity->splitsOf(SplitKind::Kilometer)),
+            'effort' => $effort,
+            'kilometers' => SplitTable::fromSplits($activity->splitsOf(SplitKind::Kilometer), $effort->kilometerAdjustments ?? []),
             // Tours affichés seulement s'ils apportent autre chose que le découpage au km.
             'laps' => [] !== $laps && !SplitTable::areAutomaticKilometers($laps) ? SplitTable::fromSplits($laps) : null,
             'automatic_laps' => [] !== $laps && SplitTable::areAutomaticKilometers($laps),

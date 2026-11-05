@@ -27,6 +27,14 @@
                 <span class="stat-label">Allure moyenne</span>
                 <span class="stat-value">{{ activity.paceSecondsPerKm|pace }}</span>
             </div>
+            {% if effort and effort.gradeAdjustedPace is not null %}
+                <div class="stat-tile" title="Chaque mètre compte selon son coût énergétique par rapport au plat (Minetti) : montées plus chères, descentes douces moins chères. Même principe que la NGP de Suunto ou la GAP de Strava.">
+                    {{ include('_icon.html.twig', {name: 'trending-up'}, with_context = false) }}
+                    <span class="stat-label">Allure ajustée à la pente</span>
+                    <span class="stat-value">{{ effort.gradeAdjustedPace|pace }}</span>
+                    <span class="stat-detail">équivalent sur le plat (NGP)</span>
+                </div>
+            {% endif %}
         {% endif %}
         <div class="stat-tile">
             {{ include('_icon.html.twig', {name: 'heart'}, with_context = false) }}
@@ -110,6 +118,60 @@
                     {% endfor %}
                 </ul>
             </div>
+        </section>
+    {% endif %}
+
+    {% if effort and (effort.bestPaces or effort.descent is not null or effort.steps is not null or effort.zones) %}
+        <section class="card" aria-labelledby="effort-title">
+            <h2 id="effort-title">Analyse de l'effort</h2>
+            <p class="card-subtitle">Calculée sur la série enregistrée{% if effort.descent is not null %}, relief selon l'altitude du terrain{% endif %}.</p>
+            <div class="stat-grid">
+                {% if effort.bestPaces %}
+                    <div class="stat-tile">
+                        {{ include('_icon.html.twig', {name: 'zap'}, with_context = false) }}
+                        <span class="stat-label">Meilleures allures</span>
+                        <dl class="stat-list">
+                            {% for best in effort.bestPaces %}
+                                <div><dt>{{ best.label }}</dt><dd>{{ best.pace|pace }}</dd></div>
+                            {% endfor %}
+                        </dl>
+                    </div>
+                {% endif %}
+                {% if effort.descent is not null %}
+                    <div class="stat-tile">
+                        {{ include('_icon.html.twig', {name: 'mountain'}, with_context = false) }}
+                        <span class="stat-label">Dénivelé négatif</span>
+                        <span class="stat-value">{{ effort.descent|number_format(0, ',', ' ') }} m</span>
+                        <span class="stat-detail">point haut {{ effort.highest|number_format(0, ',', ' ') }} m · bas {{ effort.lowest|number_format(0, ',', ' ') }} m</span>
+                        <span class="stat-detail" title="Temps de déplacement sur une pente d'au moins 1 %">en montée {{ effort.climbingSeconds|duration }} · en descente {{ effort.descendingSeconds|duration }}</span>
+                    </div>
+                {% endif %}
+                {% if effort.steps is not null %}
+                    <div class="stat-tile">
+                        {{ include('_icon.html.twig', {name: 'footprints'}, with_context = false) }}
+                        <span class="stat-label">Foulée</span>
+                        <span class="stat-value">{{ effort.steps|number_format(0, ',', ' ') }} pas</span>
+                        <span class="stat-detail">longueur de pas {{ (effort.stepLength * 100)|number_format(0) }} cm</span>
+                    </div>
+                {% endif %}
+            </div>
+            {% if effort.zones %}
+                <h3>Zones cardiaques</h3>
+                <ul class="zone-list" aria-label="Temps par zone cardiaque">
+                    {% for zone in effort.zones %}
+                        <li class="zone-{{ zone.zone }}">
+                            <span class="zone-name"><strong>Z{{ zone.zone }}</strong> {{ zone.label }}
+                                <span class="muted">{{ zone.from is null ? 'jusqu\'à ' ~ zone.to : (zone.to is null ? 'dès ' ~ zone.from : zone.from ~ '–' ~ zone.to) }} bpm</span></span>
+                            <span class="zone-bar" style="--share: {{ zone.percent|round(1) }}%" aria-hidden="true"></span>
+                            <span class="num">{{ zone.percent|number_format(0) }} %</span>
+                            <span class="num">{{ zone.seconds|duration }}</span>
+                        </li>
+                    {% endfor %}
+                </ul>
+                <p class="muted">Zones en part de la réserve cardiaque (Karvonen), d'après la FC max et la FC de repos du <a href="{{ path('profile') }}">profil</a>.</p>
+            {% elseif activity.averageHeartRate is not null %}
+                <p class="muted">Indiquez votre FC max dans le <a href="{{ path('profile') }}">profil</a> pour voir le temps passé dans chaque zone cardiaque.</p>
+            {% endif %}
         </section>
     {% endif %}
 

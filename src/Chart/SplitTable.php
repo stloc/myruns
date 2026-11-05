@@ -16,16 +16,19 @@ final readonly class SplitTable
     private const FAST_RATIO = 0.92;
 
     /**
-     * @param list<array{split: ActivitySplit, pace: ?float, cumulative: float, speed_percent: int, fast: bool}> $rows
+     * @param list<array{split: ActivitySplit, pace: ?float, adjusted_pace: ?float, cumulative: float, speed_percent: int, fast: bool}> $rows
      */
-    private function __construct(public array $rows)
-    {
+    private function __construct(
+        public array $rows,
+        public bool $hasAdjustedPaces,
+    ) {
     }
 
     /**
      * @param list<ActivitySplit> $splits
+     * @param array<int, float>   $paceAdjustments allure ajustée à la pente / allure réelle, par position
      */
-    public static function fromSplits(array $splits): self
+    public static function fromSplits(array $splits, array $paceAdjustments = []): self
     {
         $paces = array_values(array_filter(array_map(
             // Le dernier tronçon, souvent incomplet, n'entre pas dans la médiane s'il fait moins de 500 m.
@@ -44,13 +47,14 @@ final readonly class SplitTable
             $rows[] = [
                 'split' => $split,
                 'pace' => $pace,
+                'adjusted_pace' => null !== $pace && isset($paceAdjustments[$split->position]) ? $pace * $paceAdjustments[$split->position] : null,
                 'cumulative' => $cumulative,
                 'speed_percent' => null !== $pace && null !== $best && $pace > 0 ? min(100, (int) round(100 * $best / $pace)) : 0,
                 'fast' => null !== $pace && null !== $median && $split->distanceMeters >= 500 && $pace <= self::FAST_RATIO * $median,
             ];
         }
 
-        return new self($rows);
+        return new self($rows, [] !== array_filter(array_column($rows, 'adjusted_pace')));
     }
 
     /**
