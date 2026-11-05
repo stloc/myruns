@@ -87,6 +87,10 @@ l'app de bureau) ou en ligne de commande :
 ddev exec bin/console app:import imports/export_12345678.zip
 ddev exec bin/console app:import            # dossier STRAVA_EXPORT_PATH (défaut : imports/)
 ```
+**Sauvegarde / changement de machine** : la page *Import* exporte toutes les données en un `.zip`
+(base SQLite, clés d'API en option) et le restaure en écrasant la base actuelle (l'ancienne reste en
+`myruns.db.bak`). Pratique avant une mise à jour ou pour changer d'ordinateur.
+
 
 La première lecture d'une archive complète est longue (une à quelques secondes par trace à cause
 des appels IGN, soit 10 à 25 minutes pour 600 traces ; les réimports sont quasi instantanés grâce
@@ -155,7 +159,7 @@ résolu depuis la racine du projet. L'import est idempotent, donc planifiable (c
 | Tableau de bord (forme, volume 26 semaines, potentiel, dernières sorties) | `/` |
 | Liste des activités : recherche, tri, carte des départs (regroupés selon le zoom) | `/activites` |
 | Détail d'une activité : carte du parcours (allure), comparaison avec les sorties du même parcours, temps de passage au km, tours de la montre, km rapides | `/activites/{id}` |
-| Objectif & prédiction (+ analyse IA) | `/objectif` |
+| Objectif & prédiction | `/objectif` |
 | Programme d'entraînement jusqu'au dernier objectif calculé | `/programme` |
 | Import | `/import` |
 | Profil (FC, âge, ancienneté, poids, courses officielles) | `/profil` |
@@ -252,17 +256,19 @@ dernier objectif enregistré et de la forme du moment :
    historique, VDOT requis − 3.
 4. **Séances de qualité** : 1 (2-3 sorties/sem.) ou 2 (4 et plus), progressives et plafonnées en
    part du volume (seuil 15 %, VMA 12 %, allure objectif 25 %, 30 % au marathon). Si la semaine
-   déborde, la 2ᵉ séance de qualité (hors club et allure objectif) devient un footing ; la sortie
+   déborde, la 2ᵉ séance de qualité (hors allure objectif) devient un footing ; la sortie
    longue ne perd pas plus de 20 %.
-5. **Réglages** (sur le profil) : sorties par semaine (2 à 6, séance club comprise ; par défaut
-   selon les 4 dernières semaines), jour et heure de la séance club. Le club (≈ 20 min d'endurance
-   puis fractionné ou côtes) remplace la VMA, sinon la dernière séance de qualité, mais jamais le
-   travail à l'allure objectif ; il réduit de 20 % la part d'intensité du reste de la semaine. En
-   semaine de course, il n'est gardé (« en retenue ») que 2 jours ou plus avant l'objectif.
-6. **Ajustements par semaine** (`training_week_override`) : club oui/non, nombre de sorties. Moins
+5. **Réglages** (sur le profil) : sorties par semaine (2 à 6 ; par défaut selon les 4 dernières
+   semaines).
+6. **Ajustements par semaine** (`training_week_override`) : nombre de sorties, jours échangés. Moins
    de sorties → volume réduit d'autant ; la progression générale n'est pas modifiée.
-7. **Jours** : sortie longue le dimanche (samedi si le club est le dimanche), club à son jour,
-   puis chaque séance de qualité et chaque footing le plus loin possible des séances déjà placées.
+7. **Jours** : sortie longue le dimanche, puis chaque séance de qualité et chaque footing le plus
+   loin possible des séances déjà placées. Une séance glissée sur un autre jour à venir (ou le
+   formulaire « Échanger ») échange les deux jours, repos compris, pour cette semaine seulement ;
+   jamais l'objectif ni une séance déjà courue.
+8. **Séances réécrites** : « Modifier » sous une séance à venir remplace son type, son contenu et
+   sa distance (séance de club connue le jour même, par exemple) pour cette semaine ; la séance
+   réécrite suit son jour si elle est échangée, et le bilan la juge sur ce qui a été saisi.
 
 ## Bilan prévu / réalisé
 

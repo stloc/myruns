@@ -63,6 +63,12 @@ tournent aussi sur l'hôte. `ddev start` ne demande `sudo` qu'au tout premier d�
   stable (position = reprise). Page `/import/{id}` pilotée par `fetch` (`import_job_controller.js`), bouton
   « Continuer » sans JS. Services publics (IGN, Open-Meteo, Nominatim) derrière `App\Http\NetworkGuard` :
   plus d'appel après 3 échecs de suite, budget réseau en web, intervalle minimal entre appels.
+- Sauvegarde (`src/Backup/DatabaseBackup`, section de la page `/import`) : zip = `myruns.db` (copie
+  `VACUUM INTO`) + `manifest.json`, `settings.json` (clés d'API) seulement si demandé. Restauration :
+  contrôle SQLite + table `activity`, refus si une migration est inconnue (sauvegarde plus récente
+  que l'app), ancienne base gardée en `myruns.db.bak`, migrations manquantes appliquées ; chemin de
+  la base lu dans la connexion DBAL (≠ dossier de données en test). Figé par
+  `tests/Integration/DatabaseBackupTest.php` (base temporaire : DAMA interdit VACUUM en transaction).
 - Ville : commune du 1er point GPS (`src/Geocoding/CityFinder` : `IgnReverseGeocoder`, index
   `parcel`, puis `NominatimReverseGeocoder` hors de France — 1 appel/s et User-Agent imposés par
   la charte OSM, client `nominatim.client`), cache persistant `app.place_cache` par position arrondie à 3 décimales ;
@@ -90,6 +96,12 @@ tournent aussi sur l'hôte. `ddev start` ne demande `sudo` qu'au tout premier d�
   (allure lissée sur 200 m, arrêts exclus) → `activity_profile_controller.js` : **Chart.js direct via
   l'importmap** (pas de Symfony UX Chart.js : options Chart.js pilotées en JS, couleurs CSS), un panneau par série sur des
   axes Y empilés (jamais deux échelles sur une même zone), couleurs `--profile-*` d'`app.css`.
+- Analyse de l'effort (`src/Effort/`, page détail) : rien n'est stocké, tout part de `ActivityStream`.
+  Allure ajustée à la pente = coût de Minetti (`GradeAdjustment`, pente sur 100 m, bornée à ±45 %),
+  appliquée en **rapport** à l'allure réelle (sortie et km : colonne « Ajustée » de `SplitTable`) ;
+  pas de normalisation à la puissance 4 (la NGP de Suunto n'en a pas). Meilleures allures dès 1 min
+  (30 s faussé par le GPS sur la série échantillonnée). Zones cardiaques Karvonen, seulement avec
+  une FC max dans le profil. Figé par `tests/Unit/Effort/` et `tests/Functional/EffortAnalysisTest.php`.
 - Même parcours (`src/Route/`, page détail) : rien n'est stocké ; candidats en SQL (départ à < 300 m
   via `ActivityRoute::$startLatitude/$startLongitude`, même famille de sport, distance ±10 %), puis
   `RouteMatcher` : chaque trace longe l'autre à 60 m près sur ≥ 90 %, **dans le même sens** (boucle
@@ -104,8 +116,11 @@ tournent aussi sur l'hôte. `ddev start` ne demande `sudo` qu'au tout premier d�
 - Calcul de probabilité **déterministe** (`src/Prediction/`) ; l'IA ne fait qu'affiner. Idem pour le
   programme d'entraînement (`src/Training/TrainingPlanBuilder`, figé par `tests/Unit/Training/`) :
   construit depuis `AthleteProfile::lastGoal()` (dernier objectif calculé sur `/objectif`), réglages
-  sur le profil (`planSessionsPerWeek`, `clubWeekday`, `clubTime`) et ajustements par semaine
-  (`TrainingWeekOverride`, ligne supprimée quand elle revient au réglage général).
+  sur le profil (`planSessionsPerWeek`) et ajustements par semaine (`TrainingWeekOverride` :
+  sorties, jours échangés par glisser-déposer `plan_week_controller.js` → `$days`, appliqués par
+  `moveDays()` ; séances réécrites → `$edits` par jour prévu, appliquées par `applyEdits()` avant les
+  échanges ; jamais l'objectif ; ligne supprimée quand elle revient au réglage général). Pas de
+  séance club (retirée : trop personnelle).
 - Bilan prévu / réalisé (`src/Training/PlanReviewer`, règles dans `SessionEvaluator`, figées par
   `tests/Unit/Training/SessionEvaluatorTest.php` et `tests/Integration/PlanReviewTest.php`) : rien
   n'est stocké, le prévu d'une semaine = `CurrentPlan::planAt(lundi)` (forme du lundi), les
