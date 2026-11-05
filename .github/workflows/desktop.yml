@@ -1,5 +1,5 @@
 # Installeurs de l'application de bureau (Tauri + PHP embarqué) : Windows (NSIS) et Linux (.deb, AppImage).
-# Pousser un tag « v0.2.0 » : les installeurs sont joints à une release GitHub en brouillon, à publier à la main.
+# Pousser un tag « v0.2.0 » : les installeurs sont joints à une release GitHub en brouillon, à publier à la main (la publier la rend « latest » : c'est là que les apps installées vont chercher latest.json).
 name: Application de bureau
 
 on:
@@ -75,12 +75,18 @@ jobs:
 
       - name: Installeur
         working-directory: desktop
+        env:
+          # Signature des mises à jour automatiques (clé générée par « tauri signer generate »).
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: npx --yes @tauri-apps/cli@2.5.0 build
 
       - uses: actions/upload-artifact@v4
         with:
           name: MyRuns-windows
-          path: desktop/src-tauri/target/release/bundle/nsis/*.exe
+          path: |
+            desktop/src-tauri/target/release/bundle/nsis/*.exe
+            desktop/src-tauri/target/release/bundle/nsis/*.exe.sig
 
   linux:
     # Ubuntu 22.04 : glibc 2.35, le .deb s'installe aussi sur Debian 12 et les Ubuntu récents.
@@ -141,6 +147,10 @@ jobs:
 
       - name: Installeurs
         working-directory: desktop
+        env:
+          # Signature des mises à jour automatiques (clé générée par « tauri signer generate »).
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: npx --yes @tauri-apps/cli@2.5.0 build
 
       - uses: actions/upload-artifact@v4
@@ -149,6 +159,7 @@ jobs:
           path: |
             desktop/src-tauri/target/release/bundle/deb/*.deb
             desktop/src-tauri/target/release/bundle/appimage/*.AppImage
+            desktop/src-tauri/target/release/bundle/appimage/*.AppImage.sig
 
   release:
     if: startsWith(github.ref, 'refs/tags/v')
@@ -162,6 +173,25 @@ jobs:
           path: dist
           merge-multiple: true
 
+      - name: latest.json (mises à jour automatiques)
+        # Lu par l'application installée : Windows (NSIS) et Linux (AppImage seulement).
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          base="https://github.com/$GITHUB_REPOSITORY/releases/download/$GITHUB_REF_NAME"
+          exe=$(find dist -name '*.exe' | head -n1)
+          appimage=$(find dist -name '*.AppImage' | head -n1)
+          jq -n \
+            --arg version "$version" \
+            --arg date "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --arg exeUrl "$base/$(basename "$exe")" \
+            --rawfile exeSig "$exe.sig" \
+            --arg appUrl "$base/$(basename "$appimage")" \
+            --rawfile appSig "$appimage.sig" \
+            '{version: $version, pub_date: $date, platforms: {
+                "windows-x86_64": {url: $exeUrl, signature: ($exeSig | rtrimstr("\n"))},
+                "linux-x86_64": {url: $appUrl, signature: ($appSig | rtrimstr("\n"))}}}' > dist/latest.json
+          cat dist/latest.json
+
       - name: Release GitHub (brouillon)
         env:
           GH_TOKEN: ${{ github.token }}
@@ -169,4 +199,4 @@ jobs:
         run: |
           shopt -s globstar
           gh release create "$GITHUB_REF_NAME" --draft --title "MyRuns $GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" \
-            dist/**/*.exe dist/**/*.deb dist/**/*.AppImage
+            dist/**/*.exe dist/**/*.deb dist/**/*.AppImage dist/latest.json

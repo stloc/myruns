@@ -14,6 +14,8 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 use tauri::{AppHandle, Manager, RunEvent, Url, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
+use tauri_plugin_dialog::{DialogExt, MessageDialogButtons};
+use tauri_plugin_updater::UpdaterExt;
 
 /// Serveur PHP lancé par l'application, arrêté à la fermeture.
 struct PhpServer(Mutex<Option<Child>>);
@@ -23,6 +25,8 @@ const STARTUP_TIMEOUT: Duration = Duration::from_secs(60);
 fn main() {
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(PhpServer(Mutex::new(None)))
         .setup(|app| {
             let window = WebviewWindowBuilder::new(app, "main", WebviewUrl::App("index.html".into()))
@@ -45,6 +49,7 @@ fn main() {
             thread::spawn(move || match start(&handle) {
                 Ok(url) => {
                     let _ = window.navigate(url);
+                    check_for_update(handle.clone());
                 }
                 Err(message) => show_error(&window, &message),
             });
@@ -232,6 +237,39 @@ fn stop_server(handle: &AppHandle) {
 
 fn is_internal(url: &Url) -> bool {
     url.scheme() == "tauri" || matches!(url.host_str(), Some("127.0.0.1" | "localhost" | "tauri.localhost"))
+}
+
+/// Mise à jour automatique : Windows (installeur NSIS) et Linux en AppImage seulement (un .deb
+/// installé par le gestionnaire de paquets ne peut pas se remplacer lui-même). Silencieux hors
+/// ligne ou sans nouvelle version ; l'installation n'a lieu qu'avec l'accord de l'utilisateur.
+fn check_for_update(handle: AppHandle) {
+    if !cfg!(windows) && std::env::var_os("APPIMAGE").is_none() {
+        return;
+    }
+    thread::spawn(move || {
+        let _ = tauri::async_runtime::block_on(async {
+            let Some(update) = handle.updater().map_err(|e| e.to_string())?.check().await.map_err(|e| e.to_string())? else {
+                return Ok::<(), String>(());
+            };
+            let accepted = handle
+                .dialog()
+                .message(format!(
+                    "MyRuns {} est disponible (version installée : {}).\n\nInstaller maintenant ? L'application redémarrera.",
+                    update.version, update.current_version
+                ))
+                .title("Mise à jour de MyRuns")
+                .buttons(MessageDialogButtons::OkCancelCustom("Installer".into(), "Plus tard".into()))
+                .blocking_show();
+            if !accepted {
+                return Ok(());
+            }
+            let bytes = update.download(|_, _| {}, || {}).await.map_err(|e| e.to_string())?;
+            // Le serveur PHP verrouille les fichiers de l'app : on l'arrête avant de les remplacer.
+            stop_server(&handle);
+            update.install(bytes).map_err(|e| e.to_string())?;
+            handle.restart()
+        });
+    });
 }
 
 fn show_error(window: &WebviewWindow, message: &str) {
