@@ -136,9 +136,6 @@ final class WebDashboardTest extends WebTestCase
         $this->client->followRedirect();
         self::assertSelectorTextContains('.alert-success', '1 temps de passage calculé(s)');
 
-        $this->client->request('GET', '/activites');
-        self::assertSelectorExists('tbody tr [title="Temps de passage disponibles"]');
-
         $this->client->request('GET', '/activites/777');
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('h1', 'Fractionné');

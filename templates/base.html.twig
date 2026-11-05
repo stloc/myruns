@@ -16,6 +16,7 @@
         <header class="site-header">
             <a class="brand" href="{{ path('dashboard') }}"><img src="{{ asset('images/logo.svg') }}" alt="" width="28" height="28">MyRuns</a>
             <nav aria-label="Navigation principale">
+                {# Front des clés d'API masqué : {route: 'settings', label: 'Réglages'} à remettre dans la liste ci-dessous #}
                 {% set route = app.request.attributes.get('_route') %}
                 {% for item in [
                     {route: 'dashboard', label: 'Tableau de bord'},
@@ -24,7 +25,6 @@
                     {route: 'plan', label: 'Programme'},
                     {route: 'import', label: 'Import'},
                     {route: 'profile', label: 'Profil'},
-                    {route: 'settings', label: 'Réglages'},
                 ] %}
                     <a href="{{ path(item.route) }}" {% if route == item.route %}aria-current="page"{% endif %}>{{ item.label }}</a>
                 {% endfor %}
