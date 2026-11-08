@@ -81,6 +81,7 @@ fn start(handle: &AppHandle) -> Result<Url, String> {
     let port = free_port()?;
     let env = [
         ("APP_ENV", "prod".to_string()),
+        ("MYRUNS_VERSION", version.clone()),
         ("APP_DEBUG", "0".to_string()),
         ("MYRUNS_DATA_DIR", path_string(&data_dir)),
         // Cache par version : une mise à jour repart d'un cache neuf.

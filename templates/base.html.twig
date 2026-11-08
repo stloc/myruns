@@ -29,6 +29,7 @@
                     <a href="{{ path(item.route) }}" {% if route == item.route %}aria-current="page"{% endif %}>{{ item.label }}</a>
                 {% endfor %}
             </nav>
+            {% if app_version %}<span class="app-version" title="Version de l'application">v{{ app_version }}</span>{% endif %}
         </header>
 
         <main class="page">

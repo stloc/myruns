@@ -14,6 +14,9 @@ parameters:
     # Durée d'une étape d'import web : courte, pour que la barre d'avancement bouge souvent
     # (la page enchaîne les étapes ; chacune relit l'index des activités, coût négligeable).
     app.import_step_seconds: 3.0
+    # Version de l'application de bureau (MYRUNS_VERSION, fournie par Tauri) ; vide hors app de bureau.
+    env(MYRUNS_VERSION): ''
+    app.version: '%env(MYRUNS_VERSION)%'
 
 services:
     # default configuration for services in *this* file
