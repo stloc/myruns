@@ -1,0 +1,20 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Ajouter une activité{% endblock %}
+
+{% block body %}
+    <div class="page-heading">
+        <h1>Ajouter une activité</h1>
+        <a class="button button-secondary" href="{{ path('activity_index') }}">Retour</a>
+    </div>
+
+    <section class="card">
+        <p class="card-subtitle">Saisie manuelle, sans trace GPS : pas de carte ni de temps de passage. Elle compte dans les analyses et n'est jamais remplacée par un import.</p>
+        {{ form_start(form, {attr: {class: 'form'}}) }}
+            {{ form_widget(form) }}
+            <div class="form-actions">
+                <button type="submit" class="button">Ajouter l'activité</button>
+            </div>
+        {{ form_end(form) }}
+    </section>
+{% endblock %}

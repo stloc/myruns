@@ -22,8 +22,10 @@ final class ActivityRepository extends ServiceEntityRepository
     public const SOURCE_CSV = 'strava_csv';
     public const SOURCE_FILE = 'track_file';
     public const SOURCE_GARMIN = 'garmin_export';
+    /** Saisie à la main : jamais remplacée par une autre source (comme un export de compte). */
+    public const SOURCE_MANUAL = 'manual';
     /** Résumés d'un export de compte : plus complets qu'une trace, jamais remplacés par une autre source. */
-    private const ACCOUNT_EXPORTS = [self::SOURCE_CSV, self::SOURCE_GARMIN];
+    private const ACCOUNT_EXPORTS = [self::SOURCE_CSV, self::SOURCE_GARMIN, self::SOURCE_MANUAL];
 
     private const RUNNING_SPORTS = [Sport::Run, Sport::TrailRun, Sport::VirtualRun];
     /** En dessous, un enregistrement n'est pas une sortie (montre lancée par erreur) : ignoré par les analyses. */

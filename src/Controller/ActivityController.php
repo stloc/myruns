@@ -13,6 +13,8 @@ use App\Entity\Activity;
 use App\Enum\ActivitySort;
 use App\Enum\SplitKind;
 use App\Enum\Sport;
+use App\Form\ManualActivityType;
+use App\Form\Model\ManualActivityRequest;
 use App\Prediction\HeartRateReserve;
 use App\Repository\ActivityRepository;
 use App\Repository\ActivitySearch;
@@ -55,6 +57,29 @@ final class ActivityController extends AbstractController
                 fn (string $id): string => $this->generateUrl('activity_show', ['id' => $id]),
             ),
         ]);
+    }
+
+    #[Route('/activites/nouvelle', name: 'activity_new', methods: ['GET', 'POST'])]
+    public function new(Request $request, ActivityRepository $activities): Response
+    {
+        $data = new ManualActivityRequest();
+        $form = $this->createForm(ManualActivityType::class, $data);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $result = $activities->upsert($data->toActivity());
+            $activities->flush();
+            if (null === $result->activity) {
+                $this->addFlash('error', 'Cette activité ne peut pas être ajoutée.');
+
+                return $this->redirectToRoute('activity_new');
+            }
+            $this->addFlash('success', 'Activité ajoutée.');
+
+            return $this->redirectToRoute('activity_show', ['id' => $result->activity->id]);
+        }
+
+        return $this->render('activity/new.html.twig', ['form' => $form], new Response(status: $form->isSubmitted() ? Response::HTTP_UNPROCESSABLE_ENTITY : Response::HTTP_OK));
     }
 
     #[Route('/activites/{id}', name: 'activity_show', methods: ['GET'])]
