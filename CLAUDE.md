@@ -11,7 +11,7 @@ réussite d'un objectif chrono (VDOT + coach IA).
   `.deb` + AppImage (Linux, PHP statique static-php-cli « common », sans intl), construits par
   GitHub Actions (`.github/workflows/desktop.yml`, sur tag `v*`)
   Mise à jour automatique (`tauri-plugin-updater`, `check_for_update()` dans `main.rs`) : Windows et
-  AppImage seulement (pas le `.deb`), avec accord de l'utilisateur ; `latest.json` signé joint à la
+  AppImage avec accord de l'utilisateur, `.deb` seulement prévenu (bouton vers la page de la release) ; `latest.json` signé joint à la
   release par le workflow (secrets `TAURI_SIGNING_PRIVATE_KEY[_PASSWORD]`, clé publique dans
   `tauri.conf.json`) ; dépôt public requis (endpoint `releases/latest/download/`). Clé privée perdue =
   plus aucune mise à jour possible des apps installées

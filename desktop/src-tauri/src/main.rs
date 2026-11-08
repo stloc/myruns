@@ -15,6 +15,7 @@ use std::time::{Duration, Instant};
 
 use tauri::{AppHandle, Manager, RunEvent, Url, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons};
+use tauri_plugin_opener::OpenerExt;
 use tauri_plugin_updater::UpdaterExt;
 
 /// Serveur PHP lancé par l'application, arrêté à la fermeture.
@@ -240,18 +241,35 @@ fn is_internal(url: &Url) -> bool {
     url.scheme() == "tauri" || matches!(url.host_str(), Some("127.0.0.1" | "localhost" | "tauri.localhost"))
 }
 
-/// Mise à jour automatique : Windows (installeur NSIS) et Linux en AppImage seulement (un .deb
-/// installé par le gestionnaire de paquets ne peut pas se remplacer lui-même). Silencieux hors
-/// ligne ou sans nouvelle version ; l'installation n'a lieu qu'avec l'accord de l'utilisateur.
+/// Page des releases, ouverte pour mettre à jour à la main une installation .deb.
+const RELEASES_URL: &str = "https://github.com/stloc/myruns/releases/latest";
+
+/// Mise à jour automatique : Windows (installeur NSIS) et Linux en AppImage (installation avec
+/// l'accord de l'utilisateur). Un .deb installé par le gestionnaire de paquets ne peut pas se
+/// remplacer lui-même : il est seulement prévenu, avec un lien vers la release. Silencieux hors
+/// ligne ou sans nouvelle version.
 fn check_for_update(handle: AppHandle) {
-    if !cfg!(windows) && std::env::var_os("APPIMAGE").is_none() {
-        return;
-    }
+    let self_updating = cfg!(windows) || std::env::var_os("APPIMAGE").is_some();
     thread::spawn(move || {
         let _ = tauri::async_runtime::block_on(async {
             let Some(update) = handle.updater().map_err(|e| e.to_string())?.check().await.map_err(|e| e.to_string())? else {
                 return Ok::<(), String>(());
             };
+            if !self_updating {
+                let open = handle
+                    .dialog()
+                    .message(format!(
+                        "MyRuns {} est disponible (version installée : {}).\n\nTélécharger le nouveau paquet .deb sur la page de la release, puis l'installer : sudo apt install ./MyRuns_{}_amd64.deb",
+                        update.version, update.current_version, update.version
+                    ))
+                    .title("Mise à jour de MyRuns")
+                    .buttons(MessageDialogButtons::OkCancelCustom("Ouvrir la page".into(), "Plus tard".into()))
+                    .blocking_show();
+                if open {
+                    let _ = handle.opener().open_url(RELEASES_URL, None::<&str>);
+                }
+                return Ok(());
+            }
             let accepted = handle
                 .dialog()
                 .message(format!(
