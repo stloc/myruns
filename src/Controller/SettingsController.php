@@ -27,7 +27,7 @@ final class SettingsController extends AbstractController
         $form->handleRequest($request);
         if ($form->isSubmitted() && $form->isValid()) {
             $values = [];
-            foreach (LocalSettings::KEYS as $key) {
+            foreach (LocalSettings::VISIBLE_KEYS as $key) {
                 $value = $form->get($key)->getData();
                 if (\is_string($value) && '' !== trim($value)) {
                     $values[$key] = $value;
@@ -40,7 +40,7 @@ final class SettingsController extends AbstractController
         }
 
         $keys = [];
-        foreach (LocalSettings::KEYS as $key) {
+        foreach (LocalSettings::VISIBLE_KEYS as $key) {
             $keys[$key] = [
                 'from_environment' => '' !== $this->settings->environmentValue($key),
                 'stored' => self::mask($this->settings->get($key)),
@@ -57,7 +57,7 @@ final class SettingsController extends AbstractController
     #[IsCsrfTokenValid('settings_clear')]
     public function clear(string $key): Response
     {
-        if (!\in_array($key, LocalSettings::KEYS, true)) {
+        if (!\in_array($key, LocalSettings::VISIBLE_KEYS, true)) {
             throw new NotFoundHttpException();
         }
 

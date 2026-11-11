@@ -16,8 +16,14 @@ use Symfony\Component\Filesystem\Path;
  */
 final class LocalSettings
 {
-    /** Clés modifiables depuis la page Réglages. */
+    /** Clés connues (sauvegarde, chargement dans l'environnement). */
     public const array KEYS = ['INTERVALS_API_KEY', 'ANTHROPIC_API_KEY'];
+
+    /**
+     * Clés proposées sur la page Réglages : le champ Anthropic est masqué (ajouter
+     * 'ANTHROPIC_API_KEY' ici pour le remettre ; la clé reste lisible via .env.local).
+     */
+    public const array VISIBLE_KEYS = ['INTERVALS_API_KEY'];
 
     private const string SECRET = 'APP_SECRET';
 

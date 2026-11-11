@@ -16,7 +16,7 @@
                 {% for key, status in keys %}
                     {{ form_row(form[key]) }}
                     {% if status.from_environment %}
-                        <p class="muted">Définie par la configuration du serveur (.env.local) : elle est prioritaire sur cette page.</p>
+                        <p class="muted">Définie par la configuration de l'application : elle est prioritaire sur cette page.</p>
                     {% elseif status.stored %}
                         <p class="muted">Clé enregistrée ({{ status.stored }}).</p>
                     {% else %}
